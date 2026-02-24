@@ -1080,23 +1080,50 @@ document.getElementById('wb-modal-overlay').addEventListener('click', function(e
 });
 
 // ══════════════════════════════════════════════
-//  Init – wait for Frappe session
+//  Init – resolve user via API (works in website context)
 // ══════════════════════════════════════════════
 function wbInit() {
-  if (typeof frappe === 'undefined' || !frappe.session || !frappe.session.user) {
-    setTimeout(wbInit, 150);
+  // frappe.call may not be ready immediately on website pages
+  if (typeof frappe === 'undefined' || typeof frappe.call === 'undefined') {
+    setTimeout(wbInit, 200);
     return;
   }
-  WB.currentUser = frappe.session.user;
-  $id('wb-user-label').textContent = WB.currentUser;
 
-  // Redirect guests to login
-  if (WB.currentUser === 'Guest') {
-    window.location.href = '/login?redirect-to=' + encodeURIComponent(window.location.pathname);
-    return;
-  }
-  wbFetchMyTasks();
-  wbFetchAssignedTasks();
+  frappe.call({
+    method: 'frappe.client.get_value',
+    args: { doctype: 'User', filters: { name: 'Session User' }, fieldname: ['name', 'full_name'] },
+    callback: function(r) {
+      var user = r && r.message && r.message.name ? r.message.name : null;
+
+      // Fallback: try frappe.session directly
+      if (!user && frappe.session && frappe.session.user) {
+        user = frappe.session.user;
+      }
+
+      if (!user || user === 'Guest') {
+        window.location.href = '/login?redirect-to=' + encodeURIComponent(window.location.pathname);
+        return;
+      }
+
+      WB.currentUser = user;
+      var fullName = (r && r.message && r.message.full_name) ? r.message.full_name : user;
+      $id('wb-user-label').textContent = fullName;
+
+      wbFetchMyTasks();
+      wbFetchAssignedTasks();
+    },
+    error: function() {
+      // Last resort fallback
+      if (frappe.session && frappe.session.user && frappe.session.user !== 'Guest') {
+        WB.currentUser = frappe.session.user;
+        $id('wb-user-label').textContent = WB.currentUser;
+        wbFetchMyTasks();
+        wbFetchAssignedTasks();
+      } else {
+        window.location.href = '/login?redirect-to=' + encodeURIComponent(window.location.pathname);
+      }
+    }
+  });
 }
 
 wbInit();
