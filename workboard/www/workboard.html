@@ -901,80 +901,106 @@ window.wbToggleGroup = function(header) {
 // ══════════════════════════════════════════════
 window.wbMarkDone = function(taskName, btn) {
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; }
-  frappe.call({
-    method: 'run_doc_method',
-    args: { dt: 'WB Task', dn: taskName, method: 'mark_done' },
-    freeze: false,
-    callback: function(r) {
-      showToast('Task marked as Done!', 'success');
-      var idx = WB.myTasks.findIndex(function(t){return t.name===taskName;});
-      if (idx !== -1) WB.myTasks[idx].status = 'Done';
-      if (WB.modalTask && WB.modalTask.name === taskName) { WB.modalTask.status = 'Done'; wbRenderModalActions(); }
-      wbUpdateStats(); wbRenderMyTasks();
-      setTimeout(wbFetchMyTasks, 500);
-    },
-    error: function() {
-      showToast('Failed to mark done. Check permissions.', 'error');
-      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i>Mark Done'; }
-    }
+  wbPostCall('frappe.client.run_doc_method', {
+    dt: 'WB Task', dn: taskName, method: 'mark_done'
+  }, function(r) {
+    showToast('Task marked as Done!', 'success');
+    var idx = WB.myTasks.findIndex(function(t){return t.name===taskName;});
+    if (idx !== -1) WB.myTasks[idx].status = 'Done';
+    if (WB.modalTask && WB.modalTask.name === taskName) { WB.modalTask.status = 'Done'; wbRenderModalActions(); }
+    wbUpdateStats(); wbRenderMyTasks();
+    setTimeout(wbFetchMyTasks, 500);
+  }, function() {
+    showToast('Failed to mark done. Check permissions.', 'error');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i>Mark Done'; }
   });
 };
 
 window.wbMarkCompleted = function(taskName, btn) {
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; }
-  frappe.call({
-    method: 'run_doc_method',
-    args: { dt: 'WB Task', dn: taskName, method: 'mark_completed' },
-    freeze: false,
-    callback: function(r) {
-      showToast('Task marked as Completed!', 'success');
-      [WB.myTasks, WB.assignedTasks].forEach(function(list){
-        var idx = list.findIndex(function(t){return t.name===taskName;});
-        if (idx !== -1) list[idx].status = 'Completed';
-      });
-      if (WB.modalTask && WB.modalTask.name === taskName) { WB.modalTask.status = 'Completed'; wbRenderModalActions(); }
-      wbUpdateStats(); wbUpdateAssignedBadge(); wbRenderMyTasks(); wbRenderAssignedTasks();
-      setTimeout(function(){ wbFetchMyTasks(); wbFetchAssignedTasks(); }, 500);
-    },
-    error: function() {
-      showToast('Failed to complete. Check permissions.', 'error');
-      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-circle-check"></i>Approve'; }
-    }
+  wbPostCall('frappe.client.run_doc_method', {
+    dt: 'WB Task', dn: taskName, method: 'mark_completed'
+  }, function(r) {
+    showToast('Task marked as Completed!', 'success');
+    [WB.myTasks, WB.assignedTasks].forEach(function(list){
+      var idx = list.findIndex(function(t){return t.name===taskName;});
+      if (idx !== -1) list[idx].status = 'Completed';
+    });
+    if (WB.modalTask && WB.modalTask.name === taskName) { WB.modalTask.status = 'Completed'; wbRenderModalActions(); }
+    wbUpdateStats(); wbUpdateAssignedBadge(); wbRenderMyTasks(); wbRenderAssignedTasks();
+    setTimeout(function(){ wbFetchMyTasks(); wbFetchAssignedTasks(); }, 500);
+  }, function() {
+    showToast('Failed to complete. Check permissions.', 'error');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-circle-check"></i>Approve'; }
   });
 };
 
 // ══════════════════════════════════════════════
 //  Data Fetch
 // ══════════════════════════════════════════════
+function wbApiCall(method, args, callback, errCallback) {
+  var params = new URLSearchParams();
+  Object.keys(args).forEach(function(k) {
+    params.append(k, typeof args[k] === 'object' ? JSON.stringify(args[k]) : args[k]);
+  });
+  fetch('/api/method/' + method + '?' + params.toString(), {
+    method: 'GET',
+    credentials: 'same-origin',
+    headers: { 'Accept': 'application/json', 'X-Frappe-CSRF-Token': frappe.csrf_token || '' }
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) { callback(data); })
+  .catch(function(e) { if (errCallback) errCallback(e); });
+}
+
+function wbPostCall(method, args, callback, errCallback) {
+  var body = new URLSearchParams();
+  body.append('cmd', method);
+  Object.keys(args).forEach(function(k) {
+    body.append(k, typeof args[k] === 'object' ? JSON.stringify(args[k]) : args[k]);
+  });
+  fetch('/api/method/' + method, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Accept': 'application/json', 'X-Frappe-CSRF-Token': frappe.csrf_token || '' },
+    body: body
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) { callback(data); })
+  .catch(function(e) { if (errCallback) errCallback(e); });
+}
+
 function wbFetchMyTasks() {
   $id('wb-my-list').innerHTML = '<div class="wb-loading-state"><div class="wb-spinner"></div><span>Loading your tasks…</span></div>';
-  frappe.call({
-    method: 'frappe.client.get_list',
-    args: { doctype: 'WB Task', fields: WB.FIELDS, filters: [['assign_to','=',WB.currentUser]], order_by: 'due_date asc', limit_page_length: 200 },
-    callback: function(r) {
-      WB.myTasks = r.message || [];
-      wbUpdateStats();
-      wbRenderMyTasks();
-    },
-    error: function() {
-      $id('wb-my-list').innerHTML = '<div class="wb-empty-state wb-card"><i class="fa-solid fa-triangle-exclamation"></i><p>Failed to load tasks</p><span>Check your connection</span></div>';
-    }
+  wbApiCall('frappe.client.get_list', {
+    doctype: 'WB Task',
+    fields: JSON.stringify(WB.FIELDS),
+    filters: JSON.stringify([['assign_to','=',WB.currentUser]]),
+    order_by: 'due_date asc',
+    limit_page_length: 200
+  }, function(r) {
+    WB.myTasks = r.message || [];
+    wbUpdateStats();
+    wbRenderMyTasks();
+  }, function() {
+    $id('wb-my-list').innerHTML = '<div class="wb-empty-state wb-card"><i class="fa-solid fa-triangle-exclamation"></i><p>Failed to load tasks</p><span>Check your connection</span></div>';
   });
 }
 
 function wbFetchAssignedTasks() {
   $id('wb-assigned-list').innerHTML = '<div class="wb-loading-state"><div class="wb-spinner"></div><span>Loading assigned tasks…</span></div>';
-  frappe.call({
-    method: 'frappe.client.get_list',
-    args: { doctype: 'WB Task', fields: WB.FIELDS, filters: [['assign_from','=',WB.currentUser]], order_by: 'status asc, due_date asc', limit_page_length: 200 },
-    callback: function(r) {
-      WB.assignedTasks = (r.message||[]).filter(function(t){return t.assign_to!==WB.currentUser;});
-      wbUpdateAssignedBadge();
-      wbRenderAssignedTasks();
-    },
-    error: function() {
-      $id('wb-assigned-list').innerHTML = '<div class="wb-empty-state wb-card"><i class="fa-solid fa-triangle-exclamation"></i><p>Failed to load</p><span>Check your connection</span></div>';
-    }
+  wbApiCall('frappe.client.get_list', {
+    doctype: 'WB Task',
+    fields: JSON.stringify(WB.FIELDS),
+    filters: JSON.stringify([['assign_from','=',WB.currentUser]]),
+    order_by: 'status asc, due_date asc',
+    limit_page_length: 200
+  }, function(r) {
+    WB.assignedTasks = (r.message||[]).filter(function(t){return t.assign_to!==WB.currentUser;});
+    wbUpdateAssignedBadge();
+    wbRenderAssignedTasks();
+  }, function() {
+    $id('wb-assigned-list').innerHTML = '<div class="wb-empty-state wb-card"><i class="fa-solid fa-triangle-exclamation"></i><p>Failed to load</p><span>Check your connection</span></div>';
   });
 }
 
@@ -986,16 +1012,18 @@ window.wbRefresh = function() {
   btn.classList.add('spinning');
   var done = 0;
   var finish = function(){ if(++done===2) btn.classList.remove('spinning'); };
-  frappe.call({
-    method:'frappe.client.get_list',
-    args:{doctype:'WB Task',fields:WB.FIELDS,filters:[['assign_to','=',WB.currentUser]],order_by:'due_date asc',limit_page_length:200},
-    callback:function(r){WB.myTasks=r.message||[];wbUpdateStats();wbRenderMyTasks();finish();},error:finish
-  });
-  frappe.call({
-    method:'frappe.client.get_list',
-    args:{doctype:'WB Task',fields:WB.FIELDS,filters:[['assign_from','=',WB.currentUser]],order_by:'status asc',limit_page_length:200},
-    callback:function(r){WB.assignedTasks=(r.message||[]).filter(function(t){return t.assign_to!==WB.currentUser;});wbUpdateAssignedBadge();wbRenderAssignedTasks();finish();},error:finish
-  });
+
+  wbApiCall('frappe.client.get_list', {
+    doctype: 'WB Task', fields: JSON.stringify(WB.FIELDS),
+    filters: JSON.stringify([['assign_to','=',WB.currentUser]]),
+    order_by: 'due_date asc', limit_page_length: 200
+  }, function(r){ WB.myTasks=r.message||[]; wbUpdateStats(); wbRenderMyTasks(); finish(); }, finish);
+
+  wbApiCall('frappe.client.get_list', {
+    doctype: 'WB Task', fields: JSON.stringify(WB.FIELDS),
+    filters: JSON.stringify([['assign_from','=',WB.currentUser]]),
+    order_by: 'status asc', limit_page_length: 200
+  }, function(r){ WB.assignedTasks=(r.message||[]).filter(function(t){return t.assign_to!==WB.currentUser;}); wbUpdateAssignedBadge(); wbRenderAssignedTasks(); finish(); }, finish);
 };
 
 // ══════════════════════════════════════════════
@@ -1080,49 +1108,30 @@ document.getElementById('wb-modal-overlay').addEventListener('click', function(e
 });
 
 // ══════════════════════════════════════════════
-//  Init – resolve user via API (works in website context)
+//  Init – resolve session user via /api/method
 // ══════════════════════════════════════════════
 function wbInit() {
-  // frappe.call may not be ready immediately on website pages
-  if (typeof frappe === 'undefined' || typeof frappe.call === 'undefined') {
-    setTimeout(wbInit, 200);
-    return;
-  }
-
-  frappe.call({
-    method: 'frappe.client.get_value',
-    args: { doctype: 'User', filters: { name: 'Session User' }, fieldname: ['name', 'full_name'] },
-    callback: function(r) {
-      var user = r && r.message && r.message.name ? r.message.name : null;
-
-      // Fallback: try frappe.session directly
-      if (!user && frappe.session && frappe.session.user) {
-        user = frappe.session.user;
-      }
-
-      if (!user || user === 'Guest') {
-        window.location.href = '/login?redirect-to=' + encodeURIComponent(window.location.pathname);
-        return;
-      }
-
-      WB.currentUser = user;
-      var fullName = (r && r.message && r.message.full_name) ? r.message.full_name : user;
-      $id('wb-user-label').textContent = fullName;
-
-      wbFetchMyTasks();
-      wbFetchAssignedTasks();
-    },
-    error: function() {
-      // Last resort fallback
-      if (frappe.session && frappe.session.user && frappe.session.user !== 'Guest') {
-        WB.currentUser = frappe.session.user;
-        $id('wb-user-label').textContent = WB.currentUser;
-        wbFetchMyTasks();
-        wbFetchAssignedTasks();
-      } else {
-        window.location.href = '/login?redirect-to=' + encodeURIComponent(window.location.pathname);
-      }
+  // Use fetch directly against Frappe's session endpoint — works reliably on website pages
+  fetch('/api/method/frappe.auth.get_logged_user', {
+    method: 'GET',
+    credentials: 'same-origin',
+    headers: { 'Accept': 'application/json', 'X-Frappe-CSRF-Token': frappe.csrf_token || '' }
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    var user = data && data.message ? data.message : null;
+    if (!user || user === 'Guest') {
+      window.location.href = '/login?redirect-to=' + encodeURIComponent(window.location.pathname);
+      return;
     }
+    WB.currentUser = user;
+    $id('wb-user-label').textContent = user;
+    wbFetchMyTasks();
+    wbFetchAssignedTasks();
+  })
+  .catch(function() {
+    $id('wb-user-label').textContent = 'Error loading session';
+    $id('wb-my-list').innerHTML = '<div class="wb-empty-state wb-card"><i class="fa-solid fa-triangle-exclamation"></i><p>Session error</p><span>Please <a href="/login">login again</a></span></div>';
   });
 }
 
