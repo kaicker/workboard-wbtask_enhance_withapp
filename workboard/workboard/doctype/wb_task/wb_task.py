@@ -47,14 +47,12 @@ class WBTask(Document):
 		if not self.due_date or self.status in ("Done", "Completed"):
 			return
 
-		now = now_datetime()
 		is_overdue = False
-
-		if int(self.depends_on_time or 0) and self.end_datetime:
-			# Time-based tasks: compare exact datetime
-			is_overdue = now > get_datetime(self.end_datetime)
+		if self.end_datetime:
+			# Time-based: compare exact datetime
+			is_overdue = now_datetime() > get_datetime(self.end_datetime)
 		else:
-			# Date-based tasks: compare dates only
+			# Fallback to date-based for manual tasks without end_datetime
 			is_overdue = getdate(nowdate()) > getdate(self.due_date)
 
 		if self.status in ("Open", "In Progress") and is_overdue:
@@ -80,9 +78,9 @@ class WBTask(Document):
 			if not self.date_of_completion:
 				self.date_of_completion = getdate(self.completed_on) if self.completed_on else nowdate()
 
-			# Calculate timeliness based on whether task is time-based or not
-			if int(self.depends_on_time or 0) and self.end_datetime:
-				# For time-based tasks, compare completion datetime with end_datetime
+			# Calculate timeliness
+			if self.end_datetime:
+				# Compare completion datetime with end_datetime
 				completion_datetime = (
 					get_datetime(self.completed_on)
 					if self.completed_on
@@ -91,7 +89,7 @@ class WBTask(Document):
 				end_dt = get_datetime(self.end_datetime)
 				self.timeliness = "Ontime" if completion_datetime <= end_dt else "Late"
 			elif self.due_date and self.date_of_completion:
-				# For date-based tasks, compare completion date with due_date
+				# Fallback to date-based for manual tasks without end_datetime
 				self.timeliness = (
 					"Ontime" if getdate(self.date_of_completion) <= getdate(self.due_date) else "Late"
 				)

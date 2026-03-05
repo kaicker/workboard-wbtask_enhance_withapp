@@ -80,18 +80,18 @@
    "reqd": 1
   },
   {
-   "default": "0",
+   "default": "1",
    "fieldname": "depends_on_time",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Time-Based Task"
   },
   {
-   "depends_on": "depends_on_time",
    "description": "Task must be completed by this date and time",
    "fieldname": "end_datetime",
    "fieldtype": "Datetime",
    "label": "End Date & Time",
-   "mandatory_depends_on": "depends_on_time"
+   "reqd": 1
   },
   {
    "fieldname": "triggered_on",

@@ -104,18 +104,19 @@
    "reqd": 1
   },
   {
-   "default": "0",
+   "default": "1",
    "fieldname": "depends_on_time",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Time-Based Task"
   },
   {
-   "depends_on": "depends_on_time",
-   "description": "Time limit in minutes from task creation",
+   "depends_on": "event",
+   "description": "Time limit in minutes from task creation. Used for event-based tasks only.",
    "fieldname": "time_limit_in_minutes",
    "fieldtype": "Int",
    "label": "Time Limit (Minutes)",
-   "mandatory_depends_on": "depends_on_time",
+   "mandatory_depends_on": "event",
    "non_negative": 1
   },
   {

@@ -6,22 +6,24 @@ from frappe.utils.safe_exec import get_safe_globals
 
 def _create_task_from_rule(rule, context=None):
 	title = rule.title or _("Task")
+	# Append due date (dd/mm) to title for recurring tasks so each day's task is identifiable
+	if cint(rule.recurring or 0):
+		due_date = add_days(nowdate(), cint(rule.due_days or 0))
+		title = f"{title} {getdate(due_date).strftime('%d/%m')}"
 	description = (
 		frappe.render_template(rule.description, context)
 		if (rule.description and context)
 		else (rule.description or "")
 	)
 
-	# Calculate end_datetime if time-based task
+	# All tasks are time-based. Calculate end_datetime from:
+	# - custom_task_due_by (fixed time of day) for recurring tasks
+	# - time_limit_in_minutes (relative from now) for event tasks
 	end_datetime = None
-	depends_on_time = cint(rule.depends_on_time or 0)
-	if depends_on_time:
-		if rule.get("custom_task_due_by") and cint(rule.recurring or 0):
-			# Recurring tasks: use fixed time of day from custom_task_due_by (e.g. "13:00:00")
-			end_datetime = get_datetime(f"{nowdate()} {rule.custom_task_due_by}")
-		elif rule.time_limit_in_minutes:
-			# Event tasks (or recurring without a fixed due time): relative from now
-			end_datetime = add_to_date(now_datetime(), minutes=cint(rule.time_limit_in_minutes))
+	if rule.get("custom_task_due_by") and cint(rule.recurring or 0):
+		end_datetime = get_datetime(f"{nowdate()} {rule.custom_task_due_by}")
+	elif rule.time_limit_in_minutes:
+		end_datetime = add_to_date(now_datetime(), minutes=cint(rule.time_limit_in_minutes))
 
 	# Use Administrator as default assign_from for recurring/event tasks if not specified
 	assign_from = rule.assign_from
@@ -49,7 +51,7 @@ def _create_task_from_rule(rule, context=None):
 			"task_type": "Auto",
 			"has_checklist": cint(rule.has_checklist or 0),
 			"checklist_template": rule.checklist_template,
-			"depends_on_time": depends_on_time,
+			"depends_on_time": 1,
 			"end_datetime": end_datetime,
 			"triggered_on": triggered_on,
 			"source_rule": rule.name,
