@@ -15,8 +15,13 @@ def _create_task_from_rule(rule, context=None):
 	# Calculate end_datetime if time-based task
 	end_datetime = None
 	depends_on_time = cint(rule.depends_on_time or 0)
-	if depends_on_time and rule.time_limit_in_minutes:
-		end_datetime = add_to_date(now_datetime(), minutes=cint(rule.time_limit_in_minutes))
+	if depends_on_time:
+		if rule.get("custom_task_due_by") and cint(rule.recurring or 0):
+			# Recurring tasks: use fixed time of day from custom_task_due_by (e.g. "13:00:00")
+			end_datetime = get_datetime(f"{nowdate()} {rule.custom_task_due_by}")
+		elif rule.time_limit_in_minutes:
+			# Event tasks (or recurring without a fixed due time): relative from now
+			end_datetime = add_to_date(now_datetime(), minutes=cint(rule.time_limit_in_minutes))
 
 	# Use Administrator as default assign_from for recurring/event tasks if not specified
 	assign_from = rule.assign_from

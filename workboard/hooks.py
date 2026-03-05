@@ -151,7 +151,8 @@ doc_events = {
 # ---------------
 
 scheduler_events = {
-	"daily": ["workboard.background_jobs.trigger_daily_rules", "workboard.background_jobs.update_task_status"]
+	"daily": ["workboard.background_jobs.trigger_daily_rules"],
+	"hourly": ["workboard.background_jobs.update_task_status"],
 }
 
 # scheduler_events = {

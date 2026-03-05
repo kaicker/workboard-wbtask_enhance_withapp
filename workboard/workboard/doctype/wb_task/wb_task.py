@@ -46,11 +46,20 @@ class WBTask(Document):
 	def validate_overdue(self):
 		if not self.due_date or self.status in ("Done", "Completed"):
 			return
-		today = getdate(nowdate())
-		due = getdate(self.due_date)
-		if self.status in ("Open", "In Progress") and due < today:
+
+		now = now_datetime()
+		is_overdue = False
+
+		if int(self.depends_on_time or 0) and self.end_datetime:
+			# Time-based tasks: compare exact datetime
+			is_overdue = now > get_datetime(self.end_datetime)
+		else:
+			# Date-based tasks: compare dates only
+			is_overdue = getdate(nowdate()) > getdate(self.due_date)
+
+		if self.status in ("Open", "In Progress") and is_overdue:
 			self.status = "Overdue"
-		if self.status == "Overdue" and due >= today:
+		if self.status == "Overdue" and not is_overdue:
 			self.status = "Open"
 
 	def enforce_checklist(self):
