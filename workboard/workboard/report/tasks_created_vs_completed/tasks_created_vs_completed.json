@@ -22,6 +22,9 @@
  "roles": [
   {
    "role": "System Manager"
+  },
+  {
+   "role": "WorkBoard User"
   }
  ],
  "timeout": 0

@@ -49,6 +49,10 @@
    "role": "System Manager",
    "share": 1,
    "write": 1
+  },
+  {
+   "read": 1,
+   "role": "WorkBoard User"
   }
  ],
  "row_format": "Dynamic",

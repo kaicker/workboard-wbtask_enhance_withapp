@@ -97,11 +97,12 @@
    "options": "WB Task Checklist Template"
   },
   {
+   "default": "0",
    "fieldname": "due_days",
    "fieldtype": "Int",
+   "hidden": 1,
    "label": "Due Days",
-   "non_negative": 1,
-   "reqd": 1
+   "non_negative": 1
   },
   {
    "default": "1",
@@ -112,12 +113,11 @@
   },
   {
    "depends_on": "event",
-   "description": "Time limit in minutes from task creation. Used for event-based tasks only.",
+   "description": "Time limit from task creation (e.g. 2d 1h 30m). Used for event-based tasks only.",
    "fieldname": "time_limit_in_minutes",
-   "fieldtype": "Int",
-   "label": "Time Limit (Minutes)",
-   "mandatory_depends_on": "event",
-   "non_negative": 1
+   "fieldtype": "Duration",
+   "label": "Time Limit",
+   "mandatory_depends_on": "event"
   },
   {
    "default": "0",
@@ -257,6 +257,10 @@
    "role": "System Manager",
    "share": 1,
    "write": 1
+  },
+  {
+   "read": 1,
+   "role": "WorkBoard User"
   }
  ],
  "row_format": "Dynamic",
