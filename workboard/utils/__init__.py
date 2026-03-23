@@ -1,3 +1,6 @@
+# WorkBoard Task Utilities
+# Handles task creation from rules (recurring & event-based)
+
 import frappe
 from frappe import _
 from frappe.utils import add_days, add_to_date, cint, get_datetime, getdate, now_datetime, nowdate
