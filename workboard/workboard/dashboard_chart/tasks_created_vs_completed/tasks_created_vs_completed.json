@@ -18,7 +18,14 @@
  "number_of_groups": 0,
  "owner": "Administrator",
  "report_name": "Tasks Created vs Completed",
- "roles": [],
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "WorkBoard User"
+  }
+ ],
  "show_values_over_chart": 1,
  "time_interval": "Yearly",
  "timeseries": 0,

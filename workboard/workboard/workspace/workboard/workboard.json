@@ -63,7 +63,14 @@
    "quick_list_filter": "[[\"WB Task\",\"status\",\"=\",\"Overdue\",false]]"
   }
  ],
- "roles": [],
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "WorkBoard User"
+  }
+ ],
  "sequence_id": 1.0,
  "shortcuts": [
   {
