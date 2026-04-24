@@ -31,6 +31,9 @@
   "section_break_uakq",
   "task_type",
   "column_break_fmsi",
+  "source_fms_template",
+  "fms_step_no",
+  "fms_run_id",
   "tab_2_tab",
   "checklist_template",
   "section_break_gafu",
@@ -191,12 +194,35 @@
    "fieldname": "task_type",
    "fieldtype": "Select",
    "label": "Task Type",
-   "options": "\nManual\nAuto",
+   "options": "\nManual\nAuto\nEvent\nFMS",
    "read_only": 1
   },
   {
    "fieldname": "column_break_fmsi",
    "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.task_type == \"FMS\"",
+   "fieldname": "source_fms_template",
+   "fieldtype": "Link",
+   "label": "Source FMS Template",
+   "options": "FMS Template",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.task_type == \"FMS\"",
+   "fieldname": "fms_step_no",
+   "fieldtype": "Int",
+   "label": "FMS Step No",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.task_type == \"FMS\"",
+   "description": "Identifier for a single FMS execution; all tasks in one run share this id",
+   "fieldname": "fms_run_id",
+   "fieldtype": "Data",
+   "label": "FMS Run ID",
+   "read_only": 1
   },
   {
    "depends_on": "eval:doc.has_checklist==1",

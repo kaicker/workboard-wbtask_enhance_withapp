@@ -28,6 +28,24 @@ class WBTask(Document):
 		self._stamp_status_transition(prev_status)
 		self.stamp_completion()
 
+		# Stash the transition so on_update can react to it (e.g. FMS chain advance).
+		self.flags.wb_prev_status = prev_status
+
+	def on_update(self):
+		# FMS chain: when a step transitions into Done, spawn the next step.
+		prev_status = getattr(self.flags, "wb_prev_status", None)
+		if (
+			self.task_type == "FMS"
+			and self.status == "Done"
+			and prev_status != "Done"
+		):
+			try:
+				from workboard.fms.chain import advance_on_done
+
+				advance_on_done(self)
+			except Exception:
+				frappe.log_error(title=_("WorkBoard FMS chain error"), message=frappe.get_traceback())
+
 	def _get_previous_status(self):
 		doc_before = self.get_doc_before_save()
 		return doc_before.status if doc_before else None
@@ -157,6 +175,36 @@ class WBTask(Document):
 		self.completed_on = self.completed_on or now_datetime()
 		self.date_of_completion = self.date_of_completion or getdate(self.completed_on)
 		self.save(ignore_permissions=True)
+
+	@frappe.whitelist()
+	def reopen_task(self):
+		"""Reopen a Done task back to Open.
+
+		Only the assigner (or admin) can reopen. This is used when the assigner
+		reviews a Done task and decides it isn't actually complete.
+		"""
+		if self.status != "Done":
+			frappe.throw(_("Only tasks with status Done can be reopened"))
+
+		settings = get_workboard_settings()
+		admin_role = settings.get("workboard_admin_role")
+		current_user = frappe.session.user
+		is_admin = current_user == "Administrator"
+		has_admin_role = admin_role and admin_role in frappe.get_roles(current_user)
+		is_assigner = current_user == self.assign_from
+
+		if not is_assigner and not is_admin and not has_admin_role:
+			frappe.throw(_("Only the task assigner can reopen this task"))
+
+		# Reset status and clear done/completion timestamps
+		self.status = "Open"
+		self.done_on = None
+		self.completed_on = None
+		self.date_of_completion = None
+		self.timeliness = None
+		self.save(ignore_permissions=True)
+
+		# Let validate_overdue() handle flipping to Overdue if past deadline
 
 	@frappe.whitelist()
 	def fetch_checklist(self):

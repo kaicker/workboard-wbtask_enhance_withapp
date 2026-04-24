@@ -1,0 +1,151 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:template_name",
+ "creation": "2026-04-24 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "template_name",
+  "enabled",
+  "column_break_top",
+  "task_naming_series",
+  "title_template",
+  "trigger_section",
+  "trigger_type",
+  "column_break_trg",
+  "reference_doctype",
+  "based_on",
+  "value_changed",
+  "condition",
+  "steps_section",
+  "steps"
+ ],
+ "fields": [
+  {
+   "fieldname": "template_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Template Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "column_break_top",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Naming series for WB Tasks spawned from this FMS. Example: PO-.#### or JP-.####. Leave blank to use the default (Task-.####).",
+   "fieldname": "task_naming_series",
+   "fieldtype": "Data",
+   "label": "Task Naming Series"
+  },
+  {
+   "default": "{{ doc.title or doc.name }}",
+   "description": "Jinja expression used to compose the base title. Each step's title is rendered as 'Step N: <step title> \u2014 <this>'.",
+   "fieldname": "title_template",
+   "fieldtype": "Data",
+   "label": "Title Template"
+  },
+  {
+   "fieldname": "trigger_section",
+   "fieldtype": "Section Break",
+   "label": "Trigger"
+  },
+  {
+   "default": "Manual",
+   "description": "Manual: admin clicks Start. Event: fires automatically on a doc event (like WB Task Rule).",
+   "fieldname": "trigger_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Trigger Type",
+   "options": "Manual\nEvent",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_trg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.trigger_type == \"Event\"",
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "label": "Reference Doctype",
+   "mandatory_depends_on": "eval:doc.trigger_type == \"Event\"",
+   "options": "DocType"
+  },
+  {
+   "depends_on": "eval:doc.trigger_type == \"Event\"",
+   "fieldname": "based_on",
+   "fieldtype": "Select",
+   "label": "Based On",
+   "mandatory_depends_on": "eval:doc.trigger_type == \"Event\"",
+   "options": "\nNew\nSave\nSubmit\nCancel\nValue Change"
+  },
+  {
+   "depends_on": "eval:doc.based_on == \"Value Change\"",
+   "description": "Fieldname on the reference DocType whose change triggers the FMS",
+   "fieldname": "value_changed",
+   "fieldtype": "Data",
+   "label": "Value Changed"
+  },
+  {
+   "depends_on": "eval:doc.trigger_type == \"Event\"",
+   "description": "Optional Python expression evaluated with the reference doc as `doc`. E.g. doc.workflow_state == \"Approved\"",
+   "fieldname": "condition",
+   "fieldtype": "Code",
+   "label": "Condition"
+  },
+  {
+   "fieldname": "steps_section",
+   "fieldtype": "Section Break",
+   "label": "Steps"
+  },
+  {
+   "fieldname": "steps",
+   "fieldtype": "Table",
+   "label": "Steps",
+   "options": "FMS Step",
+   "reqd": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-04-24 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "WorkBoard",
+ "name": "FMS Template",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "WorkBoard User"
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

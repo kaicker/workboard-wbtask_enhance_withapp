@@ -1,0 +1,94 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-04-24 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "step_no",
+  "title",
+  "assign_to",
+  "priority",
+  "planned_offset_minutes",
+  "has_checklist",
+  "checklist_template",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "step_no",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Step No",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "description": "Displayed as 'Step N: <title>' on the spawned WB Task",
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Title",
+   "reqd": 1
+  },
+  {
+   "fieldname": "assign_to",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Assign To",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "default": "Medium",
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Priority",
+   "options": "\nHigh\nMedium\nLow",
+   "reqd": 1
+  },
+  {
+   "description": "Planned time from the prior step's Done (or the run start for Step 1). E.g. 1d 4h.",
+   "fieldname": "planned_offset_minutes",
+   "fieldtype": "Duration",
+   "in_list_view": 1,
+   "label": "Planned Offset",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "has_checklist",
+   "fieldtype": "Check",
+   "label": "Has Checklist"
+  },
+  {
+   "depends_on": "has_checklist",
+   "fieldname": "checklist_template",
+   "fieldtype": "Link",
+   "label": "Checklist Template",
+   "mandatory_depends_on": "has_checklist",
+   "options": "WB Task Checklist Template"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Description"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-04-24 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "WorkBoard",
+ "name": "FMS Step",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

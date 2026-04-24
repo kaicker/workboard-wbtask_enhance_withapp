@@ -38,7 +38,7 @@ frappe.ui.form.on('WB Task', {
             }
           }
 
-          // Step 2: Assigner marks Completed (Done → Completed)
+          // Step 2: Assigner marks Completed OR Reopens (Done → Completed / Open)
           if (frm.doc.status === 'Done') {
             if (is_assigner || is_admin || has_admin_role) {
               frm.add_custom_button(__('Mark Completed'), () => {
@@ -50,6 +50,16 @@ frappe.ui.form.on('WB Task', {
                   callback: () => frm.reload_doc()
                 });
               }).addClass('btn-success');
+
+              frm.add_custom_button(__('Reopen'), () => {
+                frm.call({
+                  method: 'reopen_task',
+                  doc: frm.doc,
+                  freeze: true,
+                  freeze_message: __('Reopening task...'),
+                  callback: () => frm.reload_doc()
+                });
+              }).addClass('btn-warning');
             }
           }
         } else if (frm.doc.task_type === 'Auto') {
