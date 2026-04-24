@@ -45,7 +45,7 @@ def create_task_for_event(doc, method):
 					continue
 			if r.condition and not frappe.safe_eval(r.condition, None, ctx):
 				continue
-			_create_task_from_rule(r, context=ctx)
+			_create_task_from_rule(r, context=ctx, is_event=True)
 
 		# 2) FMS Template (event-triggered flows)
 		_trigger_event_fms_templates(doc, event, ctx)

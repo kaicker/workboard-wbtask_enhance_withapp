@@ -1,0 +1,111 @@
+{
+ "actions": [],
+ "autoname": "LSL-.#####",
+ "creation": "2026-04-25 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "rule",
+  "user",
+  "target_date",
+  "column_break_lsl1",
+  "action_taken",
+  "leave_application",
+  "task",
+  "section_break_lsl2",
+  "resolution"
+ ],
+ "fields": [
+  {
+   "fieldname": "rule",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Rule",
+   "options": "WB Task Rule",
+   "reqd": 1
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Intended User",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "target_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Target Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_lsl1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "action_taken",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Action Taken",
+   "options": "\nPaused\nDelegated\nDeferred",
+   "reqd": 1
+  },
+  {
+   "fieldname": "leave_application",
+   "fieldtype": "Link",
+   "label": "Leave Application",
+   "options": "Leave Application"
+  },
+  {
+   "description": "Set for Delegated/Deferred actions where a task was created; empty for Paused.",
+   "fieldname": "task",
+   "fieldtype": "Link",
+   "label": "Resulting Task",
+   "options": "WB Task"
+  },
+  {
+   "fieldname": "section_break_lsl2",
+   "fieldtype": "Section Break"
+  },
+  {
+   "description": "Free-text notes about why this action was taken (e.g. 'backup also on leave, fell back to assigner').",
+   "fieldname": "resolution",
+   "fieldtype": "Small Text",
+   "label": "Resolution"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-04-25 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "WorkBoard",
+ "name": "WB Leave Skip Log",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "WorkBoard User"
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

@@ -1,0 +1,64 @@
+{
+ "actions": [],
+ "creation": "2026-04-25 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "leave_awareness_section",
+  "enable_leave_awareness",
+  "weekly_off_day",
+  "column_break_calh",
+  "holiday_list"
+ ],
+ "fields": [
+  {
+   "fieldname": "leave_awareness_section",
+   "fieldtype": "Section Break",
+   "label": "Leave & Weekly Off"
+  },
+  {
+   "default": "0",
+   "description": "Master toggle. When off, WorkBoard ignores leave applications and weekly off entirely and behaves as if neither existed.",
+   "fieldname": "enable_leave_awareness",
+   "fieldtype": "Check",
+   "label": "Enable Leave Awareness"
+  },
+  {
+   "default": "Tuesday",
+   "description": "Daily recurring task rules will skip task creation on this day of the week (if the rule has 'Respects Weekly Off' enabled). Weekly/Monthly/Quarterly/Yearly rules still fire on their scheduled date even if it falls on the weekly off day.",
+   "fieldname": "weekly_off_day",
+   "fieldtype": "Select",
+   "label": "Weekly Off Day",
+   "options": "\nMonday\nTuesday\nWednesday\nThursday\nFriday\nSaturday\nSunday"
+  },
+  {
+   "fieldname": "column_break_calh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Optional. If set, dates in this holiday list are treated as additional non-working days on top of the Weekly Off Day.",
+   "fieldname": "holiday_list",
+   "fieldtype": "Link",
+   "label": "Holiday List",
+   "options": "Holiday List"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-04-25 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "WorkBoard",
+ "name": "WorkBoard Calendar Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

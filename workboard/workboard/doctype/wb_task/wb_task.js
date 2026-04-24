@@ -4,6 +4,27 @@
 frappe.ui.form.on('WB Task', {
   refresh(frm) {
     frm.trigger('add_action_buttons');
+    frm.trigger('render_leave_banner');
+  },
+  render_leave_banner(frm) {
+    if (!frm.dashboard) return;
+    frm.dashboard.clear_headline();
+    const bits = [];
+    if (frm.doc.leave_action === 'Delegated' && frm.doc.delegated_from) {
+      bits.push('<i class="fa fa-user-clock"></i> Delegated from <strong>' +
+        frappe.utils.escape_html(frm.doc.delegated_from) + '</strong> (on leave)');
+    }
+    if (frm.doc.leave_action === 'Deferred' && frm.doc.original_end_datetime) {
+      bits.push('<i class="fa fa-hourglass-start"></i> Deferred; original due ' +
+        frappe.datetime.str_to_user(frm.doc.original_end_datetime));
+    }
+    if (frm.doc.backlog_reason) {
+      bits.push('<i class="fa fa-inbox"></i> Backlog: ' +
+        frappe.utils.escape_html(frm.doc.backlog_reason));
+    }
+    if (!bits.length) return;
+    const color = frm.doc.backlog_reason ? 'orange' : 'blue';
+    frm.dashboard.set_headline(bits.join(' &nbsp;&middot;&nbsp; '), color);
   },
   add_action_buttons(frm) {
     if (frm.is_new()) return;

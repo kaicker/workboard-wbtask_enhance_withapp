@@ -7,7 +7,45 @@ from frappe.utils import add_days, add_to_date, cint, get_datetime, getdate, now
 from frappe.utils.safe_exec import get_safe_globals
 
 
-def _create_task_from_rule(rule, context=None):
+def _create_task_from_rule(rule, context=None, is_event=False):
+	"""Create a WB Task from a rule.
+
+	Honors the rule's leave-handling policy when the feature flag is on. Possible
+	branches:
+	  * proceed   — business as usual
+	  * pause     — skip creation, write an audit log row, return None
+	  * delegate  — create task for backup_user, stamp Leave Tracking fields
+	  * defer     — create task for original assignee but shift end_datetime to
+	                the day after the leave ends, stamp Leave Tracking fields
+
+	`is_event` flips the policy field we read: event rules use
+	`on_leave_event_behavior`, recurring rules use `on_leave_behavior`.
+	"""
+	# --- Leave handling (gated by feature flag inside the helper) -------------
+	from workboard.utils.leave import (
+		leave_awareness_enabled,
+		log_skip,
+		resolve_assignee_for_rule,
+	)
+
+	decision = resolve_assignee_for_rule(rule, is_event=is_event)
+
+	if decision["action"] == "pause":
+		# Audit trail only — no task created.
+		if leave_awareness_enabled():
+			log_skip(
+				rule=rule.name,
+				user=rule.get("assign_to"),
+				target_date=nowdate(),
+				action_taken="Paused",
+				leave_application=decision.get("leave_application"),
+				resolution=decision.get("reason"),
+			)
+		return None
+
+	effective_assign_to = decision["assign_to"] or rule.get("assign_to")
+	# --------------------------------------------------------------------------
+
 	title = rule.title or _("Task")
 	# Append due date (dd/mm) to title for recurring tasks so each day's task is identifiable
 	if cint(rule.recurring or 0):
@@ -28,6 +66,17 @@ def _create_task_from_rule(rule, context=None):
 		# Duration field stores value in seconds
 		end_datetime = add_to_date(now_datetime(), seconds=cint(rule.time_limit_in_minutes))
 
+	# If deferring due to leave, push end_datetime to (return_date + rule's normal due time if any).
+	original_end_datetime = None
+	if decision["action"] == "defer" and decision.get("defer_to"):
+		defer_date = decision["defer_to"]
+		original_end_datetime = end_datetime
+		if rule.get("custom_task_due_by") and cint(rule.recurring or 0):
+			end_datetime = get_datetime(f"{defer_date} {rule.custom_task_due_by}")
+		else:
+			# Use end-of-day on the return date as a safe default.
+			end_datetime = get_datetime(f"{defer_date} 23:59:59")
+
 	# Use Administrator as default assign_from for recurring/event tasks if not specified
 	assign_from = rule.assign_from
 	if not assign_from and (cint(rule.recurring or 0) or cint(rule.event or 0)):
@@ -41,6 +90,18 @@ def _create_task_from_rule(rule, context=None):
 		reference_doctype = context["doc"].doctype
 		reference_name = context["doc"].name
 
+	# Leave Tracking fields populated only when action required it.
+	leave_action = None
+	delegated_from = None
+	leave_application = None
+	if decision["action"] == "delegate":
+		leave_action = "Delegated"
+		delegated_from = decision.get("delegated_from")
+		leave_application = decision.get("leave_application")
+	elif decision["action"] == "defer":
+		leave_action = "Deferred"
+		leave_application = decision.get("leave_application")
+
 	doc = frappe.get_doc(
 		{
 			"doctype": "WB Task",
@@ -48,7 +109,7 @@ def _create_task_from_rule(rule, context=None):
 			"description": description,
 			"priority": rule.priority,
 			"assign_from": assign_from,
-			"assign_to": rule.assign_to,
+			"assign_to": effective_assign_to,
 			"status": "Open",
 			"task_type": "Auto",
 			"has_checklist": cint(rule.has_checklist or 0),
@@ -59,10 +120,28 @@ def _create_task_from_rule(rule, context=None):
 			"source_rule": rule.name,
 			"reference_doctype": reference_doctype,
 			"reference_name": reference_name,
+			# Leave Tracking
+			"leave_action": leave_action,
+			"delegated_from": delegated_from,
+			"leave_application": leave_application,
+			"original_end_datetime": original_end_datetime,
 		}
 	)
 	doc.fetch_checklist()
 	doc.save(ignore_permissions=True)
+
+	# Audit log for delegate/defer (skip already logged above)
+	if decision["action"] in ("delegate", "defer") and leave_awareness_enabled():
+		log_skip(
+			rule=rule.name,
+			user=rule.get("assign_to"),
+			target_date=nowdate(),
+			action_taken="Delegated" if decision["action"] == "delegate" else "Deferred",
+			leave_application=decision.get("leave_application"),
+			task=doc.name,
+			resolution=decision.get("reason"),
+		)
+
 	return doc
 
 
@@ -197,4 +276,3 @@ def seed_demo_data():
 		"recurring_rule": recurring_rule.name,
 		"recurring_tasks": recurring_tasks,
 	}
-

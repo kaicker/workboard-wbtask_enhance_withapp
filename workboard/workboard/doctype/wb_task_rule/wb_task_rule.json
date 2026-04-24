@@ -22,6 +22,13 @@
   "enabled",
   "section_break_qtih",
   "description",
+  "leave_handling_tab",
+  "on_leave_behavior",
+  "on_leave_event_behavior",
+  "backup_user",
+  "column_break_leaver",
+  "respects_weekly_off",
+  "return_policy",
   "recurring_settings_tab",
   "frequency",
   "column_break_esof",
@@ -234,6 +241,55 @@
    "fieldname": "enabled",
    "fieldtype": "Check",
    "label": "Enabled"
+  },
+  {
+   "fieldname": "leave_handling_tab",
+   "fieldtype": "Tab Break",
+   "label": "Leave Handling"
+  },
+  {
+   "default": "Pause",
+   "description": "What to do when the recurring task would be created for a user who is on approved leave. Pause: skip creation. Delegate to Backup: assign to Backup User. Defer to Return Date: create with the due date shifted to the day after the user's leave ends.",
+   "fieldname": "on_leave_behavior",
+   "fieldtype": "Select",
+   "label": "On Leave (Recurring)",
+   "options": "\nPause\nDelegate to Backup\nDefer to Return Date"
+  },
+  {
+   "default": "Delegate to Backup",
+   "description": "Same choices as On Leave (Recurring), but applied when this rule is triggered by a document event. Events cannot be retried, so Delegate is usually the right call.",
+   "fieldname": "on_leave_event_behavior",
+   "fieldtype": "Select",
+   "label": "On Leave (Event)",
+   "options": "\nPause\nDelegate to Backup\nDefer to Return Date"
+  },
+  {
+   "depends_on": "eval:doc.on_leave_behavior == \"Delegate to Backup\" || doc.on_leave_event_behavior == \"Delegate to Backup\"",
+   "description": "User to delegate to when the primary assignee is on leave. Falls back to Assign From if this user is also on leave or unset.",
+   "fieldname": "backup_user",
+   "fieldtype": "Link",
+   "label": "Backup User",
+   "options": "User"
+  },
+  {
+   "fieldname": "column_break_leaver",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.recurring == 1 && doc.frequency == \"Daily\"",
+   "description": "Only applies to Daily recurring rules. When enabled, task creation skips on the team's Weekly Off Day (see WorkBoard Calendar Settings). Auto-enabled by default for Daily rules.",
+   "fieldname": "respects_weekly_off",
+   "fieldtype": "Check",
+   "label": "Respects Weekly Off"
+  },
+  {
+   "default": "Leave as backlog",
+   "description": "When the user returns from leave, apply this policy to their Open/Overdue tasks. Auto-reschedule: shift end_datetime to today. Leave as backlog: no change, task shows in Backlog view. Notify assigner: add a comment and notify the assigner to decide.",
+   "fieldname": "return_policy",
+   "fieldtype": "Select",
+   "label": "Return-from-Leave Policy",
+   "options": "\nAuto-reschedule to return date\nLeave as backlog\nNotify assigner"
   }
  ],
  "grid_page_length": 50,

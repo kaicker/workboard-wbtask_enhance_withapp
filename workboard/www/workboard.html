@@ -562,6 +562,7 @@
               <button class="wb-chip active" data-filter="active" onclick="wbSetMyFilter('active')">Active</button>
               <button class="wb-chip" data-filter="today" onclick="wbSetMyFilter('today')">Due Today</button>
               <button class="wb-chip" data-filter="overdue" onclick="wbSetMyFilter('overdue')">Overdue</button>
+              <button class="wb-chip" data-filter="backlog" onclick="wbSetMyFilter('backlog')">Backlog</button>
               <button class="wb-chip" data-filter="all" onclick="wbSetMyFilter('all')">All Open</button>
             </div>
           </div>
@@ -645,7 +646,8 @@ var WB = {
   modalContext: '',
   FIELDS: ['name','title','priority','status','due_date',
            'depends_on_time','end_datetime','assign_from','assign_to',
-           'task_type','description','has_checklist','timeliness']
+           'task_type','description','has_checklist','timeliness',
+           'leave_action','delegated_from','backlog_reason','leave_application']
 };
 
 // ══════════════════════════════════════════════
@@ -818,6 +820,9 @@ function taskCardHTML(task, context) {
       '<div class="wb-task-meta">'+dateMeta+timeMeta+assigneeMeta+
         (task.has_checklist?'<span class="wb-meta-item"><i class="fa-solid fa-list-check"></i>Checklist</span>':'')+
         (task.task_type==='Auto'?'<span class="wb-meta-item"><i class="fa-solid fa-robot"></i>Auto</span>':'')+
+        (task.leave_action==='Delegated'?'<span class="wb-meta-item" title="Delegated while assignee was on leave"><i class="fa-solid fa-user-clock"></i>Delegated'+(task.delegated_from?' from '+esc(task.delegated_from):'')+'</span>':'')+
+        (task.leave_action==='Deferred'?'<span class="wb-meta-item" title="Deferred to return from leave"><i class="fa-solid fa-hourglass-start"></i>Deferred</span>':'')+
+        (task.backlog_reason?'<span class="wb-meta-item" title="'+esc(task.backlog_reason)+'"><i class="fa-solid fa-inbox"></i>Backlog</span>':'')+
       '</div>'+
     '</div>'+
     (actionBtn?'<div class="wb-task-actions">'+actionBtn+'</div>':'')+
@@ -832,6 +837,7 @@ function wbFilterMyTasks() {
   switch (WB.myFilter) {
     case 'today':   return WB.myTasks.filter(function(t){return t.due_date===today && !['Done','Completed'].includes(t.status);});
     case 'overdue': return WB.myTasks.filter(function(t){return t.status==='Overdue';});
+    case 'backlog': return WB.myTasks.filter(function(t){return !!t.backlog_reason && !['Done','Completed'].includes(t.status);});
     case 'all':     return WB.myTasks.filter(function(t){return t.status!=='Completed';});
     default:        return WB.myTasks.filter(function(t){return ['Open','Overdue'].includes(t.status);});
   }

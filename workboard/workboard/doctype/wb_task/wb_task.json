@@ -34,6 +34,13 @@
   "source_fms_template",
   "fms_step_no",
   "fms_run_id",
+  "leave_tracking_tab",
+  "leave_action",
+  "delegated_from",
+  "leave_application",
+  "column_break_lt1",
+  "original_end_datetime",
+  "backlog_reason",
   "tab_2_tab",
   "checklist_template",
   "section_break_gafu",
@@ -222,6 +229,56 @@
    "fieldname": "fms_run_id",
    "fieldtype": "Data",
    "label": "FMS Run ID",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.leave_action || doc.backlog_reason || doc.delegated_from",
+   "fieldname": "leave_tracking_tab",
+   "fieldtype": "Tab Break",
+   "label": "Leave Tracking"
+  },
+  {
+   "description": "Set when task creation was affected by the assignee being on leave.",
+   "fieldname": "leave_action",
+   "fieldtype": "Select",
+   "label": "Leave Action",
+   "options": "\nDelegated\nDeferred",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.leave_action == \"Delegated\"",
+   "description": "Original intended assignee at creation time, before delegation.",
+   "fieldname": "delegated_from",
+   "fieldtype": "Link",
+   "label": "Delegated From",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "description": "Leave Application that affected task creation or scheduling.",
+   "fieldname": "leave_application",
+   "fieldtype": "Link",
+   "label": "Leave Application",
+   "options": "Leave Application",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_lt1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.leave_action == \"Deferred\"",
+   "description": "Original end date & time before deferral due to leave.",
+   "fieldname": "original_end_datetime",
+   "fieldtype": "Datetime",
+   "label": "Original End Date & Time",
+   "read_only": 1
+  },
+  {
+   "description": "Populated by the return-from-leave reconciliation job when this task is part of a post-leave backlog.",
+   "fieldname": "backlog_reason",
+   "fieldtype": "Small Text",
+   "label": "Backlog Reason",
    "read_only": 1
   },
   {
