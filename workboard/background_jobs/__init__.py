@@ -1,8 +1,24 @@
+import calendar
+
 import frappe
 from frappe import _
 from frappe.utils import add_days, add_to_date, cint, get_datetime, getdate, now_datetime, nowdate, today
 
 from workboard.utils import _context, _create_task_from_rule
+
+
+def _target_dom(date_of_month, today_dt):
+	"""Clamp `date_of_month` to the last day of `today_dt`'s month.
+
+	A rule with date_of_month=31 should fire on Apr 30 / Feb 28 / etc., not
+	silently skip the entire month. Returns 0 when the rule has no
+	date_of_month set (caller should treat 0 as "never matches").
+	"""
+	dom = cint(date_of_month)
+	if dom <= 0:
+		return 0
+	last_day = calendar.monthrange(today_dt.year, today_dt.month)[1]
+	return min(dom, last_day)
 
 
 def trigger_daily_rules():
@@ -58,19 +74,54 @@ def _run_recurring_rules():
 			day_of_month = today_dt.day
 			if (day_of_month <= 7) or (15 <= day_of_month <= 21):
 				selected.append(r)
-		elif r.frequency == "Monthly" and cint(today_dt.day) == cint(r.date_of_month):
-			selected.append(r)
-		elif r.frequency == "Quarterly" and cint(today_dt.day) == cint(r.date_of_month):
-			# Quarterly: every 3 months (January, April, July, October)
-			if today_dt.month in [1, 4, 7, 10]:
+		elif r.frequency == "Monthly":
+			# Clamp date_of_month to the month's last day so rules with
+			# date_of_month=31 still fire in Apr/Jun/Sep/Nov, and dom=29/30
+			# fire on Feb 28 (or Feb 29 in leap years).
+			target = _target_dom(r.date_of_month, today_dt)
+			if target and cint(today_dt.day) == target:
 				selected.append(r)
-		elif (
-			r.frequency == "Yearly"
-			and cint(today_dt.day) == cint(r.date_of_month)
-			and cint(today_dt.month) == cint(r.month_of_year)
-		):
-			selected.append(r)
+		elif r.frequency == "Quarterly":
+			# Quarterly: every 3 months (January, April, July, October).
+			# Clamp date_of_month for the same reason as Monthly.
+			target = _target_dom(r.date_of_month, today_dt)
+			if (
+				target
+				and cint(today_dt.day) == target
+				and today_dt.month in [1, 4, 7, 10]
+			):
+				selected.append(r)
+		elif r.frequency == "Yearly" and cint(today_dt.month) == cint(r.month_of_year):
+			target = _target_dom(r.date_of_month, today_dt)
+			if target and cint(today_dt.day) == target:
+				selected.append(r)
 	for r in selected:
+		# Pre-flight: skip rules whose assignee is a disabled User. Without this
+		# check, _create_task_from_rule attempts a save that Frappe's link
+		# validator rejects; the exception is swallowed below and only surfaces
+		# in Error Log (short retention), so the rule appears to silently
+		# produce zero tasks. Logging to WB Leave Skip Log gives admins a
+		# durable, queryable signal.
+		assignee = r.get("assign_to")
+		if assignee and not frappe.db.get_value("User", assignee, "enabled"):
+			try:
+				log_skip(
+					rule=r.name,
+					user=assignee,
+					target_date=today_dt,
+					action_taken="Skipped",
+					resolution=(
+						f"Assignee {assignee} is disabled. "
+						f"Re-enable the user or reassign the rule."
+					),
+				)
+			except Exception:
+				frappe.log_error(
+					title=_("WorkBoard log_skip error"),
+					message=frappe.get_traceback(),
+				)
+			continue
+
 		try:
 			_create_task_from_rule(r)
 			frappe.db.commit()
