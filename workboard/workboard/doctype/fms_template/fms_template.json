@@ -19,7 +19,9 @@
   "value_changed",
   "condition",
   "steps_section",
-  "steps"
+  "steps",
+  "scheduled_tasks_section",
+  "scheduled_tasks"
  ],
  "fields": [
   {
@@ -49,7 +51,7 @@
   },
   {
    "default": "{{ doc.title or doc.name }}",
-   "description": "Jinja expression used to compose the base title. Each step's title is rendered as 'Step N: <step title> \u2014 <this>'.",
+   "description": "Jinja expression used to compose the base title. Each step's title is rendered as 'Step N: <step title> — <this>'.",
    "fieldname": "title_template",
    "fieldtype": "Data",
    "label": "Title Template"
@@ -74,12 +76,11 @@
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval:doc.trigger_type == \"Event\"",
    "fieldname": "reference_doctype",
    "fieldtype": "Link",
    "label": "Reference Doctype",
-   "mandatory_depends_on": "eval:doc.trigger_type == \"Event\"",
-   "options": "DocType"
+   "options": "DocType",
+   "description": "Source document type for event-triggered and scheduled FMS tasks."
   },
   {
    "depends_on": "eval:doc.trigger_type == \"Event\"",
@@ -114,6 +115,18 @@
    "label": "Steps",
    "options": "FMS Step",
    "reqd": 1
+  },
+  {
+   "description": "Date-based FMS tasks created from a date/datetime field on the reference document. These can be created even after the sequential FMS steps are complete.",
+   "fieldname": "scheduled_tasks_section",
+   "fieldtype": "Section Break",
+   "label": "Scheduled Tasks"
+  },
+  {
+   "fieldname": "scheduled_tasks",
+   "fieldtype": "Table",
+   "label": "Scheduled Tasks",
+   "options": "FMS Scheduled Task"
   }
  ],
  "grid_page_length": 50,

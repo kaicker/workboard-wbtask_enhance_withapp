@@ -1,0 +1,442 @@
+<article class="web-page-content" id="stock-verification" style="text-align: Left">
+	<style>
+:root {
+  --accent: #c47d5a;
+  --accent-light: #f5ece6;
+  --bg: #f9f8f6;
+  --card: #fff;
+  --border: #e8e5e0;
+  --border-light: #f0f0f0;
+  --text: #1a1a1a;
+  --text-mid: #888;
+  --text-light: #999;
+  --text-faint: #ccc;
+  --green: #0F6E56;
+  --green-bg: #E1F5EE;
+  --red: #A32D2D;
+  --red-bg: #FCEBEB;
+  --red-border: #f0c4c4;
+  --amber: #854F0B;
+  --amber-bg: #FAEEDA;
+  --blue: #185FA5;
+  --blue-bg: #E6F1FB;
+  --r: 10px;
+  --r-sm: 8px;
+}
+
+.sv-wrap * { margin: 0; padding: 0; box-sizing: border-box; }
+
+.sv-wrap {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 0 90px;
+  min-height: 80vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.sv-header {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.sv-header h1 {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .4px;
+}
+
+.sv-header h1 span { color: var(--accent); }
+
+.sv-header .sub {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-top: 2px;
+}
+
+.sv-card {
+  background: var(--card);
+  border-radius: var(--r);
+  margin: 10px 10px 0;
+  border: 1px solid var(--border);
+}
+
+.sv-card-header {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sv-card-header h2 { font-size: 14px; font-weight: 600; }
+.sv-card-header .meta { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+
+.sv-card-body { padding: 14px; }
+
+.sv-pill-row { display: flex; gap: 6px; margin-top: 6px; }
+
+.sv-pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--r-sm);
+}
+
+.sv-pill-green { background: var(--green-bg); color: var(--green); }
+.sv-pill-red { background: var(--red-bg); color: var(--red); }
+.sv-pill-amber { background: var(--amber-bg); color: var(--amber); }
+.sv-pill-blue { background: var(--blue-bg); color: var(--blue); }
+
+.sv-field-group { margin-bottom: 12px; }
+
+.sv-field-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.sv-field-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  background: var(--card);
+  color: var(--text);
+  outline: none;
+}
+
+.sv-field-input:focus { border-color: var(--accent); }
+.sv-field-input::placeholder { color: var(--text-faint); }
+
+.sv-field-auto {
+  background: var(--bg);
+  border-color: var(--border-light);
+  color: var(--text-mid);
+}
+
+.sv-upload-zone {
+  border: 1.5px dashed var(--border);
+  border-radius: var(--r-sm);
+  padding: 18px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.sv-upload-zone:active { border-color: var(--accent); }
+.sv-upload-zone p { font-size: 12px; color: var(--text-mid); margin: 0; }
+.sv-upload-zone .hint { font-size: 10px; color: var(--text-light); margin-top: 3px; }
+
+.sv-upload-done { border-style: solid; border-color: var(--green); background: var(--green-bg); }
+.sv-upload-done p { color: var(--green); }
+
+.sv-grid-header {
+  display: grid;
+  grid-template-columns: 1fr 54px 54px 54px;
+  gap: 4px;
+  padding: 7px 12px 5px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  background: var(--bg);
+  border-bottom: 1px solid #e5e5e5;
+  position: sticky;
+  top: 47px;
+  z-index: 50;
+}
+
+.sv-grid-header span:not(:first-child) { text-align: center; }
+
+.sv-grid-row {
+  display: grid;
+  grid-template-columns: 1fr 54px 54px 54px;
+  gap: 4px;
+  align-items: center;
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.sv-cat-name { font-size: 12px; font-weight: 600; }
+
+.sv-num-input {
+  width: 46px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 7px 2px;
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  background: var(--card);
+  color: var(--text);
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.sv-num-input::-webkit-inner-spin-button,
+.sv-num-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.sv-num-input:focus { border-color: var(--accent); }
+.sv-num-input::placeholder { color: var(--text-faint); font-weight: 400; }
+
+.sv-entry-count {
+  font-size: 10px;
+  color: var(--text-light);
+  text-align: center;
+  padding: 6px 12px;
+  background: var(--bg);
+  border-top: 1px solid var(--border-light);
+  text-transform: uppercase;
+  letter-spacing: .3px;
+}
+
+.sv-sheet-attached {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--green);
+  background: var(--green-bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.sv-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); display: inline-block; }
+
+.sv-recon-card {
+  border: 1px solid var(--red-border);
+  border-radius: var(--r-sm);
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.sv-recon-card .top-row { display: flex; justify-content: space-between; align-items: baseline; }
+.sv-recon-card .cat { font-size: 14px; font-weight: 600; }
+.sv-recon-card .diff { font-family: monospace; font-size: 14px; font-weight: 600; color: var(--red); }
+.sv-recon-card .detail { font-size: 11px; color: var(--text-mid); margin: 3px 0 8px; }
+
+.sv-recon-card textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  resize: none;
+  outline: none;
+  min-height: 44px;
+  color: var(--text);
+}
+
+.sv-recon-card textarea:focus { border-color: var(--accent); }
+.sv-recon-card textarea::placeholder { color: var(--text-faint); }
+
+.sv-bottom-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  padding: 10px;
+  display: flex;
+  gap: 8px;
+  z-index: 100;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.sv-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: var(--r-sm);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+  text-align: center;
+}
+
+.sv-btn:active { transform: scale(0.97); opacity: 0.85; }
+.sv-btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.sv-btn-success { background: var(--green); color: #fff; border-color: var(--green); }
+.sv-btn-disabled { opacity: 0.5; pointer-events: none; }
+
+.sv-btn-link {
+  background: none;
+  border: none;
+  color: var(--text-mid);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px;
+}
+
+.sv-shift-card {
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.sv-shift-card.active { border-color: var(--accent); }
+.sv-shift-card.disabled { opacity: 0.4; pointer-events: none; }
+.sv-shift-card .shift-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.sv-shift-card .shift-name { font-size: 14px; font-weight: 600; }
+.sv-shift-card .shift-detail { font-size: 11px; color: var(--text-mid); line-height: 1.5; }
+
+.sv-session-info {
+  padding: 8px 14px;
+  font-size: 11px;
+  color: var(--text-light);
+  border-top: 1px solid var(--border-light);
+}
+
+.sv-session-info strong { color: var(--text-mid); font-weight: 600; }
+
+.sv-state { display: none; }
+.sv-state.active { display: block; }
+
+.sv-all-good { text-align: center; padding: 24px 0; }
+
+.sv-all-good .icon {
+  width: 44px; height: 44px; border-radius: 50%; background: var(--green-bg);
+  display: flex; align-items: center; justify-content: center; margin: 0 auto 10px;
+}
+
+.sv-all-good h3 { font-size: 14px; font-weight: 600; color: var(--green); }
+.sv-all-good p { font-size: 11px; color: var(--text-light); margin-top: 3px; }
+
+.sv-loading { text-align: center; padding: 40px; font-size: 13px; color: var(--text-light); }
+</style>
+
+<div class="sv-wrap">
+
+  <div class="sv-header">
+    <h1>RIBBONS DELHI <span>&middot; Stock Verification</span></h1>
+    <div class="sub" id="sv-date-display"></div>
+  </div>
+
+  <div class="sv-state active" id="sv-state-0">
+    <div class="sv-card">
+      <div class="sv-card-header"><h2>Today's verification</h2></div>
+      <div class="sv-card-body" id="sv-shifts-body">
+        <div class="sv-loading">Loading...</div>
+      </div>
+      <div class="sv-session-info">Logged in as <strong id="sv-user-display"></strong></div>
+    </div>
+  </div>
+
+  <div class="sv-state" id="sv-state-0b">
+    <div class="sv-card">
+      <div class="sv-card-header">
+        <h2 id="sv-setup-title">AM — Setup</h2>
+        <div class="meta" id="sv-setup-meta"></div>
+      </div>
+      <div class="sv-card-body">
+        <!-- Shared employee suggestions for both Counted By inputs -->
+        <datalist id="sv-employee-list"></datalist>
+        <div class="sv-field-group">
+          <label class="sv-field-label">Counted by — Person 1</label>
+          <input class="sv-field-input" type="text" placeholder="Name"
+                 id="sv-counted-by-1" list="sv-employee-list" autocomplete="off">
+        </div>
+        <div class="sv-field-group">
+          <label class="sv-field-label">Counted by — Person 2</label>
+          <input class="sv-field-input" type="text" placeholder="Name"
+                 id="sv-counted-by-2" list="sv-employee-list" autocomplete="off">
+        </div>
+        <div class="sv-field-group">
+          <label class="sv-field-label">Data entry by</label>
+          <input class="sv-field-input sv-field-auto" type="text" id="sv-entry-by" disabled>
+        </div>
+        <div class="sv-field-group">
+          <label class="sv-field-label">Upload paper sheet <span style="color:#c0392b">*</span></label>
+          <div class="sv-upload-zone" id="sv-upload-zone" onclick="document.getElementById('sv-file-input').click()">
+            <p>Tap to upload photo</p>
+            <p class="hint">Camera or gallery</p>
+          </div>
+          <input type="file" id="sv-file-input" accept="image/*" capture="environment" style="display:none" onchange="svHandleUpload(this)">
+        </div>
+        <div class="sv-field-group">
+          <label class="sv-field-label">Remarks</label>
+          <textarea class="sv-field-input" rows="2" placeholder="General remarks..." id="sv-setup-remarks" style="resize:none"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="sv-bottom-bar">
+      <button class="sv-btn" onclick="svGoState('0')">Back</button>
+      <button class="sv-btn sv-btn-primary" id="sv-proceed-btn" onclick="svTryProceedToEntry()">Proceed to entry</button>
+    </div>
+  </div>
+
+  <div class="sv-state" id="sv-state-1">
+    <div class="sv-card" style="border-radius:var(--r) var(--r) 0 0;margin-bottom:0">
+      <div class="sv-card-header">
+        <h2 id="sv-entry-title">AM — Enter counts</h2>
+        <div class="meta" id="sv-entry-meta">Counted by: —</div>
+      </div>
+      <div id="sv-sheet-status" style="display:none" class="sv-sheet-attached">
+        <span class="sv-dot"></span> Paper sheet attached
+      </div>
+      <div class="sv-grid-header">
+        <span>Category</span>
+        <span>Safe</span>
+        <span>Tray</span>
+        <span>Out</span>
+      </div>
+      <div id="sv-entry-grid"></div>
+      <div class="sv-entry-count" id="sv-entry-count">0 / 0 filled</div>
+    </div>
+    <div class="sv-bottom-bar">
+      <button class="sv-btn" onclick="svSaveDraft()">Save draft</button>
+      <button class="sv-btn sv-btn-primary" onclick="svSaveCounts()">Save counts</button>
+    </div>
+  </div>
+
+  <div class="sv-state" id="sv-state-2">
+    <div class="sv-card">
+      <div class="sv-card-header">
+        <h2 id="sv-recon-title">AM — Differences</h2>
+        <div class="sv-pill-row" id="sv-recon-pills"></div>
+      </div>
+      <div class="sv-card-body" id="sv-recon-body"></div>
+    </div>
+    <div style="text-align:center;padding:6px">
+      <button class="sv-btn-link" onclick="svGoState('1')">EDIT COUNTS</button>
+    </div>
+    <div class="sv-bottom-bar">
+      <button class="sv-btn" onclick="svSaveRemarks()">Save</button>
+      <button class="sv-btn sv-btn-success" onclick="svSubmitFinal()">Submit</button>
+    </div>
+  </div>
+
+  <div class="sv-state" id="sv-state-done">
+    <div class="sv-card">
+      <div class="sv-card-body">
+        <div class="sv-all-good">
+          <div class="icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <h3>Submitted</h3>
+          <p id="sv-done-msg"></p>
+          <button class="sv-btn" style="margin-top:16px;display:inline-block;padding:8px 20px;font-size:12px" onclick="svGoState('0')">Back to home</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</article>

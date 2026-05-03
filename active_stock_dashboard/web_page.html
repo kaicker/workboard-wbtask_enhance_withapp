@@ -1,0 +1,235 @@
+<!--
+  Active Stock Dashboard — HTML body (Ribbons theme, Alpine.js)
+  ------------------------------------------------------------------
+  Install:
+    1. ERPNext > Web Page > active-gold (or new)
+    2. Route:        gold (or active-stock-dashboard)
+    3. Published:    yes
+    4. Show title:   no
+    5. Content type: HTML
+    6. Paste this entire file into "Main Section (HTML)"
+    7. Paste contents of client_script.js into the "Javascript" field.
+    8. Save.
+
+  Alpine.js v3 is loaded from CDN.  All filter/sort/render logic is
+  declarative (x-data / x-for / x-model) — server contract unchanged.
+-->
+
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js"></script>
+
+<style>
+  /* ---- Ribbons theme tokens ---- */
+  .asd-wrap{
+    --rb-accent:#c47d5a;
+    --rb-card:#fff;
+    --rb-border:#e8e5e0;
+    --rb-row:#f9f8f6;
+    --rb-divider:#f0f0f0;
+    --rb-header-border:#e5e5e5;
+    --rb-text:#1a1a1a;
+    --rb-mute:#888;
+    --rb-mute2:#999;
+    --rb-muted-zero:#ccc;
+    max-width:1100px;margin:24px auto;padding:0 16px;color:var(--rb-text);
+  }
+  [x-cloak]{display:none !important;}
+
+  .asd-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:16px;gap:12px;flex-wrap:wrap;}
+  .asd-head h1{font-size:22px;font-weight:600;margin:0;letter-spacing:-.2px;}
+  .asd-head .sub{font-size:12px;color:var(--rb-mute);margin-top:2px;}
+  .asd-meta{font-size:11px;color:var(--rb-mute2);text-transform:uppercase;letter-spacing:.4px;}
+
+  /* ---- Filter bar ---- */
+  .asd-filters{
+    background:var(--rb-card);border:1px solid var(--rb-border);border-radius:10px;
+    padding:12px;margin-bottom:14px;
+    display:flex;gap:12px;align-items:end;flex-wrap:wrap;
+  }
+  .asd-field{flex:1 1 200px;min-width:180px;}
+  .asd-filters > div > label{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--rb-mute);margin-bottom:6px;font-weight:600;}
+
+  /* multi-select trigger styled like an input */
+  .asd-multi{position:relative;}
+  .asd-multi .asd-trigger{
+    height:36px;border:1px solid var(--rb-border);border-radius:8px;background:#fff;
+    padding:0 30px 0 12px;display:flex;align-items:center;cursor:pointer;font-size:13px;color:var(--rb-text);
+  }
+  .asd-multi .asd-trigger:after{content:"";position:absolute;right:12px;top:50%;width:6px;height:6px;border-right:1.5px solid var(--rb-mute);border-bottom:1.5px solid var(--rb-mute);transform:translateY(-70%) rotate(45deg);}
+  .asd-multi .asd-pop{
+    position:absolute;z-index:20;top:40px;left:0;right:0;
+    background:#fff;border:1px solid var(--rb-border);border-radius:10px;
+    box-shadow:0 8px 24px rgba(40,30,20,.08);max-height:280px;overflow:auto;
+  }
+  .asd-multi .asd-search{padding:8px 10px;border-bottom:1px solid var(--rb-divider);}
+  .asd-multi .asd-search input{width:100%;height:32px;border:1px solid var(--rb-border);border-radius:6px;padding:0 10px;font-size:13px;}
+  .asd-multi .asd-actions{display:flex;justify-content:space-between;padding:6px 10px;border-bottom:1px solid var(--rb-divider);font-size:11px;text-transform:uppercase;letter-spacing:.4px;}
+  .asd-multi .asd-actions a{cursor:pointer;color:var(--rb-accent);font-weight:600;}
+  .asd-multi .asd-list label{display:flex;align-items:center;gap:8px;padding:7px 10px;font-size:13px;cursor:pointer;font-weight:400;margin:0;}
+  .asd-multi .asd-list label:hover{background:var(--rb-row);}
+  .asd-multi .asd-list input[type=checkbox]{margin:0;accent-color:var(--rb-accent);}
+
+  .asd-btn{
+    height:36px;padding:8px 14px;border-radius:8px;border:1px solid var(--rb-border);
+    background:#fff;color:var(--rb-text);font-size:13px;font-weight:500;cursor:pointer;
+  }
+  .asd-btn:hover{background:var(--rb-row);}
+
+  /* ---- Summary cards ---- */
+  .asd-kpis{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:14px;
+  }
+  .asd-kpi{background:var(--rb-card);border:1px solid var(--rb-border);border-radius:10px;padding:12px;}
+  .asd-kpi .lbl{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--rb-mute);font-weight:600;}
+  .asd-kpi .val{font-size:18px;font-weight:600;margin-top:6px;font-family:monospace;color:var(--rb-text);}
+  .asd-kpi .val.zero{color:var(--rb-muted-zero);font-weight:400;}
+
+  /* ---- Table ---- */
+  .asd-card{background:var(--rb-card);border:1px solid var(--rb-border);border-radius:10px;overflow:hidden;}
+  .asd-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .asd-table thead th{
+    background:var(--rb-row);text-align:left;padding:9px 12px;
+    font-size:10px;text-transform:uppercase;letter-spacing:.4px;font-weight:600;color:var(--rb-mute);
+    border-bottom:1px solid var(--rb-header-border);cursor:pointer;user-select:none;
+  }
+  .asd-table thead th .arr{font-size:9px;color:var(--rb-mute2);margin-left:4px;}
+  .asd-table thead th.active{color:var(--rb-text);}
+  .asd-table thead th.active .arr{color:var(--rb-accent);}
+  .asd-table td{padding:9px 12px;border-bottom:1px solid var(--rb-divider);}
+  .asd-table tbody tr:hover{background:var(--rb-row);}
+  /* Numeric alignment — right-align headers AND cells, but only headers stay in Inter (cells use monospace below). */
+  .asd-table th.asd-num{text-align:right;}
+  .asd-table td.asd-num{text-align:right;font-family:monospace;font-variant-numeric:tabular-nums;}
+  .asd-num.bold{font-weight:600;}
+  .asd-zero{color:var(--rb-muted-zero);}
+  .asd-cat{font-weight:500;}
+  .asd-cat.empty{color:var(--rb-mute2);font-weight:400;font-style:italic;}
+
+  .asd-table tfoot td{
+    background:var(--rb-row);font-weight:600;font-size:12px;
+    border-top:2px solid var(--rb-accent);
+  }
+  .asd-empty,.asd-loading{padding:40px;text-align:center;color:var(--rb-mute);font-size:12px;}
+
+  @media (max-width:740px){
+    .asd-field{flex-basis:calc(50% - 6px);}
+  }
+</style>
+
+<div class="asd-wrap" x-data="activeStockDashboard()" x-init="init()" x-cloak>
+
+  <div class="asd-head">
+    <div>
+      <h1>Active stock by category</h1>
+      <div class="sub">Live from Serial No · count and total pure gold per category</div>
+    </div>
+    <div class="asd-meta" x-text="meta"></div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="asd-filters" @click.outside="closeAll()">
+    <template x-for="f in filterDefs" :key="f.key">
+      <div class="asd-field">
+        <label x-text="f.label"></label>
+        <div class="asd-multi" :class="{ open: openKey === f.key }">
+          <div class="asd-trigger" @click.stop="toggleOpen(f.key)" x-text="triggerLabel(f.key)"></div>
+          <div class="asd-pop" x-show="openKey === f.key" @click.stop x-transition.opacity>
+            <div class="asd-search">
+              <input type="text" placeholder="Search…" x-model="search[f.key]" />
+            </div>
+            <div class="asd-actions">
+              <a @click="selectAll(f.key)">Select all</a>
+              <a @click="clear(f.key)">Clear</a>
+            </div>
+            <div class="asd-list">
+              <template x-for="o in filteredOptions(f.key)" :key="o">
+                <label>
+                  <input type="checkbox" :value="o" x-model="state[f.key]" @change="refresh()" />
+                  <span x-text="o"></span>
+                </label>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+    <div>
+      <button class="asd-btn" @click="reset()">Reset</button>
+    </div>
+  </div>
+
+  <!-- KPI cards -->
+  <div class="asd-kpis">
+    <div class="asd-kpi">
+      <div class="lbl">Active items</div>
+      <div class="val" :class="{ zero: !totals.count }" x-text="kpi(totals.count, { int: true, alwaysShow: true })"></div>
+    </div>
+    <div class="asd-kpi">
+      <div class="lbl">Pure gold (g)</div>
+      <div class="val" :class="{ zero: !totals.pure_gold }" x-text="kpi(totals.pure_gold)"></div>
+    </div>
+    <div class="asd-kpi">
+      <div class="lbl">Gross wt (g)</div>
+      <div class="val" :class="{ zero: !totals.gross_wt }" x-text="kpi(totals.gross_wt)"></div>
+    </div>
+    <div class="asd-kpi">
+      <div class="lbl">Diamond (ct)</div>
+      <div class="val" :class="{ zero: !totals.diamond_ct }" x-text="kpi(totals.diamond_ct)"></div>
+    </div>
+    <div class="asd-kpi">
+      <div class="lbl">Categories</div>
+      <div class="val" :class="{ zero: !totals.categories }" x-text="kpi(totals.categories, { int: true, alwaysShow: true })"></div>
+    </div>
+    <div class="asd-kpi">
+      <div class="lbl">Avg / item (g)</div>
+      <div class="val" :class="{ zero: !avgPerItem }" x-text="kpi(avgPerItem)"></div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="asd-card">
+    <table class="asd-table">
+      <thead>
+        <tr>
+          <template x-for="col in columns" :key="col.key">
+            <th
+              :class="{ 'asd-num': col.num, active: sort.key === col.key }"
+              @click="setSort(col.key)"
+            >
+              <span x-text="col.label"></span>
+              <span class="arr" x-text="sort.key === col.key ? (sort.dir === 'asc' ? '↑' : '↓') : '↕'"></span>
+            </th>
+          </template>
+        </tr>
+      </thead>
+      <tbody>
+        <template x-if="loading && !sortedRows.length">
+          <tr><td :colspan="columns.length" class="asd-loading">Loading…</td></tr>
+        </template>
+        <template x-if="!loading && !sortedRows.length">
+          <tr><td :colspan="columns.length" class="asd-empty">No active items match these filters.</td></tr>
+        </template>
+        <template x-for="r in sortedRows" :key="r.category">
+          <tr>
+            <td class="asd-cat" :class="{ empty: r.category === '(no category)' }" x-text="r.category"></td>
+            <td :class="numCellClass(r.count)" x-text="numCellText(r.count, { int: true })"></td>
+            <td :class="numCellClass(r.pure_gold, { bold: true })" x-text="numCellText(r.pure_gold)"></td>
+            <td :class="numCellClass(r.gross_wt)" x-text="numCellText(r.gross_wt)"></td>
+            <td :class="numCellClass(r.diamond_ct)" x-text="numCellText(r.diamond_ct)"></td>
+            <td :class="numCellClass(rowAvg(r))" x-text="numCellText(rowAvg(r))"></td>
+          </tr>
+        </template>
+      </tbody>
+      <tfoot x-show="sortedRows.length">
+        <tr>
+          <td>Total</td>
+          <td :class="numCellClass(totals.count, { bold: true })" x-text="numCellText(totals.count, { int: true })"></td>
+          <td :class="numCellClass(totals.pure_gold, { bold: true })" x-text="numCellText(totals.pure_gold)"></td>
+          <td :class="numCellClass(totals.gross_wt, { bold: true })" x-text="numCellText(totals.gross_wt)"></td>
+          <td :class="numCellClass(totals.diamond_ct, { bold: true })" x-text="numCellText(totals.diamond_ct)"></td>
+          <td :class="numCellClass(avgPerItem, { bold: true })" x-text="numCellText(avgPerItem)"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+</div>

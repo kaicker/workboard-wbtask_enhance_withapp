@@ -32,7 +32,9 @@
   "task_type",
   "column_break_fmsi",
   "source_fms_template",
+  "fms_task_kind",
   "fms_step_no",
+  "fms_schedule_no",
   "fms_run_id",
   "leave_tracking_tab",
   "leave_action",
@@ -217,10 +219,26 @@
    "read_only": 1
   },
   {
+   "default": "Sequential",
+   "depends_on": "eval:doc.task_type == \"FMS\"",
+   "fieldname": "fms_task_kind",
+   "fieldtype": "Select",
+   "label": "FMS Task Kind",
+   "options": "\nSequential\nScheduled",
+   "read_only": 1
+  },
+  {
    "depends_on": "eval:doc.task_type == \"FMS\"",
    "fieldname": "fms_step_no",
    "fieldtype": "Int",
    "label": "FMS Step No",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.task_type == \"FMS\" && doc.fms_task_kind == \"Scheduled\"",
+   "fieldname": "fms_schedule_no",
+   "fieldtype": "Int",
+   "label": "FMS Schedule No",
    "read_only": 1
   },
   {

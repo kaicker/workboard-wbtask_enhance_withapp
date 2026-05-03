@@ -154,6 +154,7 @@ scheduler_events = {
 	"daily": [
 		"workboard.background_jobs.trigger_daily_rules",
 		"workboard.background_jobs.reconcile_returning_users",
+		"workboard.fms.chain.trigger_due_scheduled_tasks",
 	],
 	"hourly": ["workboard.background_jobs.update_task_status"],
 }

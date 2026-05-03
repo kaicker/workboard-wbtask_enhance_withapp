@@ -17,7 +17,8 @@ Design recap (from the design doc):
 import uuid
 
 import frappe
-from frappe.utils import add_to_date, cint, get_datetime, now_datetime
+from frappe import _
+from frappe.utils import add_days, add_to_date, cint, get_datetime, getdate, now_datetime, nowdate
 
 from workboard.utils import _context
 
@@ -72,6 +73,7 @@ def spawn_step(template, step_no: int, run_id: str, reference_doc=None, prev_don
 		"reference_doctype": reference_doctype,
 		"reference_name": reference_name,
 		"source_fms_template": template.name,
+		"fms_task_kind": "Sequential",
 		"fms_step_no": step.step_no,
 		"fms_run_id": run_id,
 	}
@@ -128,6 +130,175 @@ def advance_on_done(task_doc):
 		reference_doc=reference_doc,
 		prev_done_on=task_doc.done_on or now_datetime(),
 	)
+
+
+def trigger_due_scheduled_tasks():
+	"""Create due FMS Scheduled Tasks for existing FMS runs.
+
+	Runs are inferred from existing FMS WB Tasks. This intentionally does not
+	require the sequential chain to still be open; a scheduled follow-up can be
+	created even after the linear FMS steps are complete.
+	"""
+	try:
+		for run in _iter_fms_runs_with_reference():
+			_create_due_scheduled_tasks_for_run(run)
+	except Exception:
+		frappe.log_error(
+			title=_("WorkBoard FMS scheduled task error"),
+			message=frappe.get_traceback(),
+		)
+
+
+def _iter_fms_runs_with_reference():
+	rows = frappe.get_all(
+		"WB Task",
+		filters=[
+			["WB Task", "task_type", "=", "FMS"],
+			["WB Task", "source_fms_template", "is", "set"],
+			["WB Task", "fms_run_id", "is", "set"],
+			["WB Task", "reference_doctype", "is", "set"],
+			["WB Task", "reference_name", "is", "set"],
+		],
+		fields=[
+			"source_fms_template",
+			"fms_run_id",
+			"reference_doctype",
+			"reference_name",
+		],
+		limit_page_length=0,
+	)
+
+	seen = set()
+	for row in rows:
+		key = (
+			row.source_fms_template,
+			row.fms_run_id,
+			row.reference_doctype,
+			row.reference_name,
+		)
+		if key in seen:
+			continue
+		seen.add(key)
+		yield row
+
+
+def _create_due_scheduled_tasks_for_run(run):
+	try:
+		template = frappe.get_doc("FMS Template", run.source_fms_template)
+	except frappe.DoesNotExistError:
+		return
+
+	if not template.enabled or not (template.scheduled_tasks or []):
+		return
+
+	if template.reference_doctype and run.reference_doctype != template.reference_doctype:
+		return
+
+	try:
+		reference_doc = frappe.get_doc(run.reference_doctype, run.reference_name)
+	except frappe.DoesNotExistError:
+		return
+
+	for scheduled in template.scheduled_tasks or []:
+		try:
+			if _scheduled_task_exists(template.name, run.fms_run_id, scheduled.schedule_no):
+				continue
+			if not _scheduled_task_due_today(scheduled, reference_doc):
+				continue
+			if scheduled.condition and not frappe.safe_eval(
+				scheduled.condition, None, _context(reference_doc)
+			):
+				continue
+			spawn_scheduled_task(template, scheduled, run.fms_run_id, reference_doc)
+			frappe.db.commit()
+		except Exception:
+			frappe.log_error(
+				title=_("WorkBoard FMS scheduled task row error"),
+				message=frappe.get_traceback(),
+			)
+
+
+def spawn_scheduled_task(template, scheduled, run_id: str, reference_doc):
+	"""Create a scheduled FMS WB Task for one scheduled row."""
+	if not scheduled:
+		return None
+
+	ctx = _context(reference_doc)
+	base_title = _render_title(template.title_template, reference_doc)
+	row_title = (
+		frappe.render_template(scheduled.title, ctx)
+		if scheduled.title
+		else _("Scheduled Task")
+	)
+	title = f"{row_title} — {base_title}" if base_title else row_title
+
+	description = (
+		frappe.render_template(scheduled.description, ctx)
+		if scheduled.description
+		else f"FMS: {template.name} — Scheduled {scheduled.schedule_no}"
+	)
+
+	due_time = scheduled.due_time or "18:00:00"
+	end_datetime = get_datetime(f"{nowdate()} {due_time}")
+
+	task_doc = {
+		"doctype": "WB Task",
+		"title": title,
+		"description": description,
+		"priority": scheduled.priority,
+		"assign_from": "Administrator",
+		"assign_to": scheduled.assign_to,
+		"status": "Open",
+		"task_type": "FMS",
+		"has_checklist": cint(scheduled.has_checklist or 0),
+		"checklist_template": scheduled.checklist_template,
+		"depends_on_time": 1,
+		"end_datetime": end_datetime,
+		"triggered_on": now_datetime(),
+		"reference_doctype": reference_doc.doctype,
+		"reference_name": reference_doc.name,
+		"source_fms_template": template.name,
+		"fms_task_kind": "Scheduled",
+		"fms_schedule_no": scheduled.schedule_no,
+		"fms_run_id": run_id,
+	}
+
+	if template.task_naming_series:
+		from frappe.model.naming import make_autoname
+		task_doc["name"] = make_autoname(template.task_naming_series, doctype="WB Task")
+
+	doc = frappe.get_doc(task_doc)
+	doc.flags.ignore_permissions = True
+	doc.fetch_checklist()
+	doc.insert(ignore_permissions=True)
+	return doc
+
+
+def _scheduled_task_exists(template_name, run_id, schedule_no):
+	return frappe.db.exists(
+		"WB Task",
+		{
+			"source_fms_template": template_name,
+			"fms_run_id": run_id,
+			"fms_schedule_no": schedule_no,
+		},
+	)
+
+
+def _scheduled_task_due_today(scheduled, reference_doc):
+	if not scheduled.reference_date_field:
+		return False
+	reference_value = reference_doc.get(scheduled.reference_date_field)
+	if not reference_value:
+		return False
+
+	reference_date = getdate(reference_value)
+	offset_days = cint(scheduled.offset_days or 0)
+	if scheduled.offset_direction == "After":
+		trigger_date = add_days(reference_date, offset_days)
+	else:
+		trigger_date = add_days(reference_date, -offset_days)
+	return trigger_date == getdate(nowdate())
 
 
 def _find_step(template, step_no):
