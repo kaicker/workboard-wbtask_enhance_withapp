@@ -18,6 +18,9 @@ frappe.ui.form.on('FMS Template', {
 	reference_doctype(frm) {
 		frm.trigger('setup_reference_date_field_options');
 	},
+	scheduled_tasks_add(frm) {
+		frm.trigger('setup_reference_date_field_options');
+	},
 	setup_reference_date_field_options(frm) {
 		if (!frm.doc.reference_doctype) {
 			set_scheduled_date_field_options(frm, []);
@@ -33,12 +36,6 @@ frappe.ui.form.on('FMS Template', {
 			date_options.push('creation', 'modified');
 			set_scheduled_date_field_options(frm, date_options);
 		});
-	}
-});
-
-frappe.ui.form.on('FMS Scheduled Task', {
-	scheduled_tasks_add(frm) {
-		frm.trigger('setup_reference_date_field_options');
 	}
 });
 
