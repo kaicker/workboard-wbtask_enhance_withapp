@@ -32,12 +32,15 @@ class WBTask(Document):
 		self.flags.wb_prev_status = prev_status
 
 	def on_update(self):
-		# FMS chain: when a step transitions into Done, spawn the next step.
+		# FMS chain: when a step reaches a terminal state, spawn the next step.
+		# FMS tasks normally go Open -> Completed (single-step), but Done is also
+		# accepted for backwards compatibility with in-flight runs.
 		prev_status = getattr(self.flags, "wb_prev_status", None)
+		terminal = ("Done", "Completed")
 		if (
 			self.task_type == "FMS"
-			and self.status == "Done"
-			and prev_status != "Done"
+			and self.status in terminal
+			and prev_status not in terminal
 		):
 			try:
 				from workboard.fms.chain import advance_on_done

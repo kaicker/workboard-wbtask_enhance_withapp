@@ -83,8 +83,10 @@ frappe.ui.form.on('WB Task', {
               }).addClass('btn-warning');
             }
           }
-        } else if (frm.doc.task_type === 'Auto') {
-          // Auto tasks: assignee can directly mark Completed
+        } else if (frm.doc.task_type === 'FMS' || frm.doc.task_type === 'Auto') {
+          // FMS / Auto tasks: assignee marks Completed directly (single step).
+          // FMS tasks are system-generated; the "assigner" is a placeholder
+          // (Administrator), so requiring a second approval click is just ceremony.
           if (['Open', 'Overdue'].includes(frm.doc.status)) {
             if (is_assignee || is_admin || has_admin_role) {
               frm.add_custom_button(__('Mark Completed'), () => {

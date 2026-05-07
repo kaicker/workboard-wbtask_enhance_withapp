@@ -147,7 +147,7 @@ def advance_on_done(task_doc):
 		step_no=next_step.step_no,
 		run_id=task_doc.fms_run_id,
 		reference_doc=reference_doc,
-		prev_done_on=task_doc.done_on or now_datetime(),
+		prev_done_on=task_doc.completed_on or task_doc.done_on or now_datetime(),
 	)
 
 
