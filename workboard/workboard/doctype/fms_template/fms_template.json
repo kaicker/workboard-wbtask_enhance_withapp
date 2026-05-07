@@ -9,7 +9,6 @@
   "template_name",
   "enabled",
   "column_break_top",
-  "task_naming_series",
   "title_template",
   "trigger_section",
   "trigger_type",
@@ -42,12 +41,6 @@
   {
    "fieldname": "column_break_top",
    "fieldtype": "Column Break"
-  },
-  {
-   "description": "Naming series for WB Tasks spawned from this FMS. Example: PO-.#### or JP-.####. Leave blank to use the default (Task-.####).",
-   "fieldname": "task_naming_series",
-   "fieldtype": "Data",
-   "label": "Task Naming Series"
   },
   {
    "default": "{{ doc.title or doc.name }}",
@@ -132,7 +125,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-04 00:00:00.000000",
+ "modified": "2026-05-07 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "WorkBoard",
  "name": "FMS Template",

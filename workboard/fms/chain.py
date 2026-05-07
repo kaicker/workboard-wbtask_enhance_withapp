@@ -14,10 +14,12 @@ Design recap (from the design doc):
   - Title is 'Step N: <step.title> \u2014 <rendered title_template>'.
 """
 
+import re
 import uuid
 
 import frappe
 from frappe import _
+from frappe.model.naming import make_autoname
 from frappe.utils import add_days, add_to_date, cint, get_datetime, getdate, now_datetime, nowdate
 
 from workboard.utils import _context
@@ -25,6 +27,25 @@ from workboard.utils import _context
 
 def new_run_id(template_name: str) -> str:
 	return f"{template_name}::{uuid.uuid4().hex[:8]}"
+
+
+def _fms_naming_series(template) -> str:
+	"""Auto-compute a safe naming series for WB Tasks spawned from this FMS.
+
+	Format: ``FMS-{PREFIX}-.MM.-.YYYY.-.####``
+
+	PREFIX is derived from the reference doctype (e.g. 'Purchase Order' -> 'PO',
+	'Stock Entry' -> 'SE'). Manual templates without a reference doctype use 'GEN'.
+	The format is hard-coded so users cannot typo the dot before the counter.
+	"""
+	ref_dt = (template.reference_doctype or "").strip()
+	prefix = ""
+	if ref_dt:
+		words = re.findall(r"[A-Za-z]+", ref_dt)
+		prefix = "".join(w[0] for w in words).upper()
+	if not prefix:
+		prefix = "GEN"
+	return f"FMS-{prefix}-.MM.-.YYYY.-.####"
 
 
 def spawn_step(template, step_no: int, run_id: str, reference_doc=None, prev_done_on=None):
@@ -78,11 +99,9 @@ def spawn_step(template, step_no: int, run_id: str, reference_doc=None, prev_don
 		"fms_run_id": run_id,
 	}
 
-	# Apply the FMS-specific naming series if the template defines one.
-	# We set `name` via frappe.model.naming.make_autoname so Frappe's .#### counter works.
-	if template.task_naming_series:
-		from frappe.model.naming import make_autoname
-		task_doc["name"] = make_autoname(template.task_naming_series, doctype="WB Task")
+	# Always use the FMS-managed naming series. The format is hard-coded so users
+	# can't typo it (e.g. forget the dot before the counter).
+	task_doc["name"] = make_autoname(_fms_naming_series(template), doctype="WB Task")
 
 	doc = frappe.get_doc(task_doc)
 	doc.flags.ignore_permissions = True
@@ -263,9 +282,7 @@ def spawn_scheduled_task(template, scheduled, run_id: str, reference_doc):
 		"fms_run_id": run_id,
 	}
 
-	if template.task_naming_series:
-		from frappe.model.naming import make_autoname
-		task_doc["name"] = make_autoname(template.task_naming_series, doctype="WB Task")
+	task_doc["name"] = make_autoname(_fms_naming_series(template), doctype="WB Task")
 
 	doc = frappe.get_doc(task_doc)
 	doc.flags.ignore_permissions = True

@@ -9,18 +9,32 @@ These tests work with or without HRMS installed:
   * Tests that require actual leave records are skipped when HRMS is missing.
 """
 
+from unittest.mock import patch
+
 import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import add_days, getdate, nowdate
 
+from workboard.utils import leave as leave_module
 from workboard.utils.leave import (
+	get_active_leave,
 	get_calendar_settings,
 	is_user_on_leave,
 	is_weekly_off,
 	leave_awareness_enabled,
 	log_skip,
 	resolve_assignee_for_rule,
+	users_returning_from_leave,
 )
+
+
+def _clear_user_field_cache():
+	"""Reset the per-process cache so each test probes fresh."""
+	if hasattr(frappe, "local"):
+		try:
+			delattr(frappe.local, "_workboard_leave_user_fields")
+		except AttributeError:
+			pass
 
 
 def _hrms_available():
@@ -114,6 +128,62 @@ class TestLeaveHelpers(FrappeTestCase):
 	def test_is_user_on_leave_empty_user(self):
 		self.assertFalse(is_user_on_leave(None))
 		self.assertFalse(is_user_on_leave(""))
+
+	# ---- defensive column probing -----------------------------------------
+	#
+	# Some HRMS variants ship a Leave Application doctype without an
+	# `employee_user` column. Pre-fix, every scheduler tick logged ~280
+	# 'Unknown column' SQL errors. These tests exercise the new probe.
+
+	def test_leave_user_fields_skips_absent_columns(self):
+		_clear_user_field_cache()
+
+		def _fake_has_column(_doctype, col):
+			# Pretend this site only has `user`, not `employee_user`.
+			return col == "user"
+
+		with patch.object(frappe.db, "has_column", side_effect=_fake_has_column):
+			result = leave_module._leave_user_fields()
+
+		self.assertEqual(result, ("user",))
+		_clear_user_field_cache()
+
+	def test_leave_user_fields_returns_empty_when_neither_column_present(self):
+		_clear_user_field_cache()
+
+		with patch.object(frappe.db, "has_column", return_value=False):
+			result = leave_module._leave_user_fields()
+
+		self.assertEqual(result, ())
+		_clear_user_field_cache()
+
+	def test_is_user_on_leave_no_columns_returns_false_without_query(self):
+		"""If neither user-link column exists, we must NOT issue a SQL query."""
+		_clear_user_field_cache()
+
+		with patch.object(frappe.db, "has_column", return_value=False):
+			with patch.object(frappe.db, "count") as mock_count:
+				self.assertFalse(is_user_on_leave("someone@example.com"))
+				mock_count.assert_not_called()
+		_clear_user_field_cache()
+
+	def test_get_active_leave_no_columns_returns_none_without_query(self):
+		_clear_user_field_cache()
+
+		with patch.object(frappe.db, "has_column", return_value=False):
+			with patch.object(frappe, "get_all") as mock_get_all:
+				self.assertIsNone(get_active_leave("someone@example.com"))
+				mock_get_all.assert_not_called()
+		_clear_user_field_cache()
+
+	def test_users_returning_from_leave_no_columns_returns_empty(self):
+		_clear_user_field_cache()
+
+		with patch.object(frappe.db, "has_column", return_value=False):
+			with patch.object(frappe, "get_all") as mock_get_all:
+				self.assertEqual(users_returning_from_leave(), [])
+				mock_get_all.assert_not_called()
+		_clear_user_field_cache()
 
 	# ---- resolver ----------------------------------------------------------
 

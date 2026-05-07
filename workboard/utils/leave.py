@@ -65,6 +65,36 @@ def _hrms_available() -> bool:
 		return False
 
 
+def _leave_user_fields() -> tuple:
+	"""Return the user-link fields actually present on Leave Application.
+
+	Different HRMS versions / site customisations expose either `employee_user`,
+	`user`, both, or neither. Probing once per process and skipping absent
+	columns avoids spamming Error Log with 'Unknown column' SQL errors on
+	every scheduler tick. Result is cached on the frappe.local request scope
+	when available, falling back to a module-level cache.
+	"""
+	cache_key = "_workboard_leave_user_fields"
+	cached = getattr(frappe.local, cache_key, None) if hasattr(frappe, "local") else None
+	if cached is not None:
+		return cached
+
+	fields = []
+	for col in ("employee_user", "user"):
+		try:
+			if frappe.db.has_column("Leave Application", col):
+				fields.append(col)
+		except Exception:
+			# Treat any probe failure as "column not available" — better than
+			# letting it bubble up into the caller's task-creation path.
+			pass
+	result = tuple(fields)
+
+	if hasattr(frappe, "local"):
+		setattr(frappe.local, cache_key, result)
+	return result
+
+
 # ---------------------------------------------------------------------------
 # Leave detection
 # ---------------------------------------------------------------------------
@@ -82,35 +112,29 @@ def is_user_on_leave(user: Optional[str], on_date: Optional[str] = None) -> bool
 	if not _hrms_available():
 		return False
 
+	user_fields = _leave_user_fields()
+	if not user_fields:
+		# Neither column exists on this site's Leave Application. Treat as
+		# "not on leave" rather than crashing every scheduler tick.
+		return False
+
 	target = getdate(on_date) if on_date else getdate(nowdate())
 
 	try:
-		count = frappe.db.count(
-			"Leave Application",
-			filters={
-				"employee_user": user,
-				"status": "Approved",
-				"docstatus": 1,
-				"from_date": ["<=", target],
-				"to_date": [">=", target],
-			},
-		)
-		if count:
-			return True
-
-		# Some HRMS setups link leave to `user` directly rather than
-		# employee_user; try that as a fallback.
-		count = frappe.db.count(
-			"Leave Application",
-			filters={
-				"user": user,
-				"status": "Approved",
-				"docstatus": 1,
-				"from_date": ["<=", target],
-				"to_date": [">=", target],
-			},
-		)
-		return bool(count)
+		for user_field in user_fields:
+			count = frappe.db.count(
+				"Leave Application",
+				filters={
+					user_field: user,
+					"status": "Approved",
+					"docstatus": 1,
+					"from_date": ["<=", target],
+					"to_date": [">=", target],
+				},
+			)
+			if count:
+				return True
+		return False
 	except Exception:
 		frappe.log_error(
 			title="WorkBoard is_user_on_leave error",
@@ -126,10 +150,15 @@ def get_active_leave(user: Optional[str], on_date: Optional[str] = None):
 	"""
 	if not user or not _hrms_available():
 		return None
+
+	user_fields = _leave_user_fields()
+	if not user_fields:
+		return None
+
 	target = getdate(on_date) if on_date else getdate(nowdate())
 
 	try:
-		for user_field in ("employee_user", "user"):
+		for user_field in user_fields:
 			rows = frappe.get_all(
 				"Leave Application",
 				filters={
@@ -163,12 +192,17 @@ def users_returning_from_leave(on_date: Optional[str] = None):
 	"""
 	if not _hrms_available():
 		return []
+
+	user_fields = _leave_user_fields()
+	if not user_fields:
+		return []
+
 	target = getdate(on_date) if on_date else getdate(nowdate())
 	ended_on = add_days(target, -1)
 
 	out = []
 	try:
-		for user_field in ("employee_user", "user"):
+		for user_field in user_fields:
 			rows = frappe.get_all(
 				"Leave Application",
 				filters={
