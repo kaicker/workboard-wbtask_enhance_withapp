@@ -84,6 +84,10 @@ app_license = "agpl-3.0"
 
 # before_install = "workboard.install.before_install"
 # after_install = "workboard.install.after_install"
+after_install = "workboard.setup.staff_app.create_staff_app_fields"
+
+# Re-applied on every `bench migrate` so Employee always has the Staff App fields
+after_migrate = ["workboard.setup.staff_app.create_staff_app_fields"]
 
 # Uninstallation
 # ------------
@@ -144,7 +148,12 @@ doc_events = {
 		"on_submit": "workboard.events.handlers.create_task_for_event",
 		"on_cancel": "workboard.events.handlers.create_task_for_event",
 		"on_change": "workboard.events.handlers.create_task_for_event",
-	}
+	},
+	# Push notifications to the staff Android app
+	"WB Task": {
+		"after_insert": "workboard.notifications.push.on_task_insert",
+		"on_update": "workboard.notifications.push.on_task_update",
+	},
 }
 
 # Scheduled Tasks
