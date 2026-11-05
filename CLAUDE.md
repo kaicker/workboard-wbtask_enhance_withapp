@@ -26,6 +26,9 @@ tracking, and measuring team task performance.
 - workboard/events/handlers.py — event-based task creation
 - workboard/permissions/wb_task.py — permission query conditions
 - workboard/www/workboard.html — custom web app page (1140 lines)
+- workboard/api/staff.py — staff Android app API (Staff App No + PIN -> device token, no ERPNext login)
+- workboard/notifications/push.py — Firebase push to the staff app on new/reassigned/reopened tasks
+- workboard/setup/staff_app.py — Employee custom fields for the staff app (applied on every migrate)
 
 ## Commands
 
@@ -39,3 +42,10 @@ tracking, and measuring team task performance.
 - Tasks auto-marked Overdue by hourly scheduler job
 - Timeliness tracked on every task (Ontime/Late) for performance reports
 - Permission system restricts visibility to owner/assign_to/assign_from
+
+## Staff Android app
+
+- Admin sets "Staff App No" + "Staff App PIN" on each Employee (Staff App tab). Employee must have a User.
+- App calls `workboard.api.staff.register` once, then sends the token in the `X-WB-Staff-Token` header.
+- `finish` calls the real `mark_done` (Manual) / `mark_completed` (Auto/Event/FMS) as that user, so all task rules apply.
+- Push is off until site config `workboard_fcm_service_account` (path to, or JSON of, a Firebase service account) is set.
